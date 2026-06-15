@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DragonPass · API Integration Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0A2333;        /* Midnight Blue */
+    --coral:#FA4A3D;      /* Coral Red */
+    --coral-dim:#fde6e3;
+    --canvas:#EEF1F5;
+    --panel:#FFFFFF;
+    --slate:#5B6B7B;
+    --hair:#E1E6EC;
+    --hair-2:#cfd6df;
+    --good:#1FA971;
+    --good-dim:#e4f4ed;
+    --warn:#C77700;
+    --console:#0B1726;
+    --console-2:#11233a;
+    --console-line:#1d3245;
+    --code-ink:#cdd9e5;
+    --code-dim:#7e93a8;
+    --radius:14px;
+    --radius-s:9px;
+    --font:'Cabin',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:var(--font);color:var(--ink);background:var(--canvas);
+    -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;
+  }
+  button{font-family:inherit;cursor:pointer}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--hair-2);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+  .console ::-webkit-scrollbar-thumb{background:#2a3f57;background-clip:content-box}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    height:54px;display:flex;align-items:center;gap:16px;padding:0 18px;
+    background:var(--ink);color:#fff;position:sticky;top:0;z-index:30;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .brand .mark{
+    width:26px;height:26px;border-radius:7px;background:var(--coral);
+    display:grid;place-items:center;font-weight:700;color:#fff;font-size:15px;
+  }
+  .brand small{font-weight:500;color:#9fb1c2;font-size:11px;display:block;margin-top:-3px;letter-spacing:.3px}
+  .topbar .spacer{flex:1}
+  .env-switch{display:flex;background:#102c44;border-radius:8px;padding:3px;gap:2px}
+  .env-switch button{
+    border:0;background:transparent;color:#9fb1c2;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600
+  }
+  .env-switch button.on{background:var(--coral);color:#fff}
+  .token-pill{
+    display:flex;align-items:center;gap:7px;font-size:12px;color:#9fb1c2;
+    background:#102c44;padding:6px 11px;border-radius:8px;font-family:var(--mono)
+  }
+  .token-pill .dot{width:8px;height:8px;border-radius:50%;background:#3d5470}
+  .token-pill.live .dot{background:var(--good);box-shadow:0 0 0 3px rgba(31,169,113,.22)}
+
+  /* ---------- Layout ---------- */
+  .grid{
+    display:grid;grid-template-columns:300px 1fr 460px;
+    height:calc(100vh - 54px);min-height:0;
+  }
+  .col{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .col.left{background:var(--panel);border-right:1px solid var(--hair)}
+  .col.center{background:var(--canvas)}
+  .col.right{background:var(--console);border-left:1px solid #08111d}
+  .col-head{
+    padding:13px 16px;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:8px;
+    flex:0 0 auto;
+  }
+  .col-head .eyebrow{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--slate);font-weight:700}
+  .col-head h2{margin:0;font-size:14px;font-weight:700}
+  .col-head .sub{font-size:11.5px;color:var(--slate);margin-top:1px}
+  .col-scroll{overflow:auto;flex:1;min-height:0}
+
+  /* ---------- Left rail ---------- */
+  .section{padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .section .label{
+    font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);
+    font-weight:700;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between
+  }
+  .seg{display:flex;background:var(--canvas);border-radius:9px;padding:3px;gap:3px}
+  .seg button{
+    flex:1;border:0;background:transparent;color:var(--slate);padding:7px 6px;border-radius:6px;
+    font-size:12.5px;font-weight:600
+  }
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(10,35,51,.12)}
+
+  .preset{
+    width:100%;text-align:left;border:1px solid var(--hair);background:#fff;border-radius:10px;
+    padding:9px 11px;margin-bottom:7px;display:flex;gap:9px;align-items:flex-start;transition:.12s
+  }
+  .preset:hover{border-color:var(--coral);background:var(--coral-dim)}
+  .preset .pi{font-size:16px;line-height:1.1}
+  .preset b{font-size:13px;display:block}
+  .preset span{font-size:11px;color:var(--slate)}
+
+  .toggle{
+    display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px;cursor:pointer;user-select:none
+  }
+  .toggle:hover{background:var(--canvas)}
+  .toggle .tg-ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:14px;background:var(--canvas);flex:0 0 auto}
+  .toggle .tg-tx{flex:1;min-width:0}
+  .toggle .tg-tx b{font-size:13px;font-weight:600;display:block;line-height:1.2}
+  .toggle .tg-tx span{font-size:10.5px;color:var(--slate)}
+  .switch{width:38px;height:22px;border-radius:20px;background:var(--hair-2);position:relative;flex:0 0 auto;transition:.16s}
+  .switch::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .toggle.on .switch{background:var(--coral)}
+  .toggle.on .switch::after{left:18px}
+  .toggle.disabled{opacity:.4;pointer-events:none}
+
+  .hint{font-size:11px;color:var(--slate);margin-top:4px;line-height:1.4}
+
+  /* ---------- Center / phone ---------- */
+  .center-wrap{display:flex;flex-direction:column;align-items:center;padding:22px 16px 30px;gap:14px}
+  .flow-bar{
+    width:100%;max-width:560px;background:#fff;border:1px solid var(--hair);border-radius:12px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap
+  }
+  .flow-bar .fb-eye{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);font-weight:700}
+  .flow-bar .fb-name{font-weight:700;font-size:13px}
+  .flow-steps{display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:2px}
+  .flow-steps .st{
+    font-size:10.5px;padding:3px 9px;border-radius:20px;background:var(--canvas);color:var(--slate);
+    font-family:var(--mono);font-weight:500;border:1px solid var(--hair)
+  }
+  .flow-steps .st.done{background:var(--good-dim);color:var(--good);border-color:transparent}
+  .flow-steps .st.active{background:var(--ink);color:#fff;border-color:transparent}
+
+  .phone{
+    width:340px;background:#000;border-radius:38px;padding:11px;box-shadow:0 20px 50px -18px rgba(10,35,51,.55);
+    flex:0 0 auto
+  }
+  .screen{
+    background:#fff;border-radius:28px;height:680px;overflow:hidden;display:flex;flex-direction:column;position:relative
+  }
+  .statusbar{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:11px;font-weight:600;color:var(--ink);flex:0 0 auto}
+  .statusbar .dots{display:flex;gap:3px;align-items:center}
+  .statusbar .dots i{width:4px;height:4px;background:var(--ink);border-radius:50%;display:block}
+  .app-head{
+    padding:8px 18px 12px;flex:0 0 auto;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--hair)
+  }
+  .app-head .logo{width:30px;height:30px;border-radius:8px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+  .app-head .ti{flex:1;min-width:0}
+  .app-head .ti b{font-size:14px;display:block;line-height:1.1}
+  .app-head .ti span{font-size:11px;color:var(--slate)}
+  .app-head .back{border:0;background:var(--canvas);width:30px;height:30px;border-radius:8px;font-size:15px;color:var(--ink)}
+
+  .app-body{flex:1;overflow:auto;padding:14px 16px 16px}
+  .app-tabs{
+    flex:0 0 auto;border-top:1px solid var(--hair);display:flex;padding:7px 6px 9px;background:#fff
+  }
+  .app-tabs button{
+    flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-size:10px;color:var(--slate);font-weight:600;padding:3px 0
+  }
+  .app-tabs button .ic{font-size:17px}
+  .app-tabs button.on{color:var(--coral)}
+
+  .searchbar{display:flex;align-items:center;gap:8px;background:var(--canvas);border-radius:11px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--slate)}
+  .loc-chip{display:inline-flex;align-items:center;gap:5px;background:var(--coral-dim);color:var(--coral);font-weight:600;font-size:11.5px;padding:4px 10px;border-radius:20px;margin-bottom:12px}
+
+  .sec-title{font-size:12px;font-weight:700;margin:4px 0 10px;display:flex;align-items:center;justify-content:space-between}
+  .sec-title span{font-size:11px;color:var(--slate);font-weight:600}
+
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{
+    border:1px solid var(--hair);border-radius:13px;padding:13px;cursor:pointer;transition:.12s;background:#fff;text-align:left
+  }
+  .tile:hover{border-color:var(--coral);transform:translateY(-1px);box-shadow:0 6px 16px -10px rgba(10,35,51,.4)}
+  .tile .em{font-size:22px}
+  .tile b{display:block;font-size:13px;margin-top:7px}
+  .tile span{font-size:11px;color:var(--slate)}
+
+  .card-res{border:1px solid var(--hair);border-radius:13px;overflow:hidden;margin-bottom:11px;background:#fff;cursor:pointer;transition:.12s}
+  .card-res:hover{border-color:var(--coral);box-shadow:0 6px 16px -10px rgba(10,35,51,.4)}
+  .card-res .ph{height:88px;background:linear-gradient(120deg,#13314a,#0A2333);position:relative;color:#fff;display:flex;align-items:flex-end;padding:9px 12px}
+  .card-res .ph .em{position:absolute;top:10px;right:12px;font-size:22px;opacity:.85}
+  .card-res .ph b{font-size:14px}
+  .card-res .meta{padding:9px 12px;display:flex;align-items:center;justify-content:space-between}
+  .card-res .meta .sub{font-size:11px;color:var(--slate)}
+  .pricepill{background:var(--ink);color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+
+  .btn{
+    width:100%;border:0;background:var(--coral);color:#fff;font-weight:700;font-size:14px;
+    padding:13px;border-radius:12px;margin-top:10px;transition:.12s
+  }
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--hair)}
+  .btn.ink{background:var(--ink)}
+  .btn:disabled{background:var(--hair-2);cursor:not-allowed}
+
+  .field{margin-bottom:11px}
+  .field label{font-size:11px;font-weight:600;color:var(--slate);display:block;margin-bottom:4px}
+  .field .ctrl{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--hair);border-radius:10px;padding:10px 12px;font-size:13px}
+  .field .ctrl button{border:0;background:var(--canvas);width:26px;height:26px;border-radius:7px;font-size:15px;font-weight:700;color:var(--ink)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chips button{border:1px solid var(--hair);background:#fff;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:600;color:var(--ink)}
+  .chips button.on{border-color:var(--coral);background:var(--coral-dim);color:var(--coral)}
+
+  .passcard{
+    border-radius:18px;padding:18px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#13314a 0%,#0A2333 100%);box-shadow:0 14px 30px -16px rgba(10,35,51,.7)
+  }
+  .passcard.member{background:linear-gradient(135deg,#FA4A3D 0%,#c5281d 100%)}
+  .passcard .pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+  .passcard .pc-top .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;font-weight:700}
+  .passcard .pc-top b{font-size:16px;display:block;margin-top:2px}
+  .passcard .tier{font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;font-weight:600}
+  .passcard .pc-no{font-family:var(--mono);font-size:13px;letter-spacing:1px;opacity:.92}
+  .passcard .pc-foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;font-size:11px;opacity:.85}
+  .qrbox{background:#fff;border-radius:14px;padding:14px;margin-top:14px;text-align:center}
+  .qr{width:150px;height:150px;margin:0 auto;image-rendering:pixelated}
+  .qr-meta{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:8px}
+  .qr-count{font-size:11px;color:var(--coral);font-weight:600;margin-top:2px}
+
+  .entrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--hair)}
+  .entrow .ei{width:30px;height:30px;border-radius:8px;background:var(--canvas);display:grid;place-items:center;font-size:15px}
+  .entrow .et{flex:1}
+  .entrow .et b{font-size:12.5px;display:block}
+  .entrow .et span{font-size:10.5px;color:var(--slate)}
+  .badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+  .badge.ok{background:var(--good-dim);color:var(--good)}
+  .badge.used{background:var(--canvas);color:var(--slate)}
+  .badge.pend{background:#fff3e0;color:var(--warn)}
+
+  .empty{text-align:center;color:var(--slate);padding:40px 20px;font-size:12.5px}
+  .empty .em{font-size:32px;display:block;margin-bottom:8px;opacity:.6}
+
+  .toast{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:78px;background:var(--ink);color:#fff;
+    font-size:12px;font-weight:600;padding:9px 15px;border-radius:11px;opacity:0;transition:.25s;pointer-events:none;z-index:5;
+    max-width:80%;text-align:center
+  }
+  .toast.show{opacity:1;bottom:88px}
+
+  /* ---------- Right console ---------- */
+  .console{font-family:var(--mono)}
+  .console .col-head{border-bottom:1px solid #08111d}
+  .console .col-head .eyebrow,.console .col-head h2{color:#cdd9e5}
+  .console .col-head .sub{color:#6f86a0}
+  .console-toolbar{display:flex;gap:7px;padding:9px 14px;border-bottom:1px solid #0d1d30;flex:0 0 auto;align-items:center}
+  .lang-seg{display:flex;background:#0d1d30;border-radius:7px;padding:2px}
+  .lang-seg button{border:0;background:transparent;color:#6f86a0;padding:4px 9px;border-radius:5px;font-size:11px;font-weight:600;font-family:var(--mono)}
+  .lang-seg button.on{background:#20364f;color:#fff}
+  .console-toolbar .sp{flex:1}
+  .clearbtn{border:1px solid #24405c;background:transparent;color:#8aa0b8;border-radius:7px;padding:5px 10px;font-size:11px;font-family:var(--mono)}
+  .clearbtn:hover{border-color:var(--coral);color:#fff}
+
+  .log{padding:10px 12px;flex:1;overflow:auto;min-height:0}
+  .call{border:1px solid #16283d;border-radius:10px;margin-bottom:10px;overflow:hidden;background:var(--console-2);animation:slidein .22s ease}
+  @keyframes slidein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .call-head{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer}
+  .verb{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.04em}
+  .verb.GET{background:#13354f;color:#5fb3f0}
+  .verb.POST{background:#143b2c;color:#52c98d}
+  .verb.PUT{background:#3a3315;color:#d9b94a}
+  .verb.DELETE{background:#3d1f1c;color:#f0786b}
+  .verb.EVENT{background:#2c2342;color:#b08ef0}
+  .call-head .path{flex:1;color:#cdd9e5;font-size:11.5px;word-break:break-all}
+  .call-head .status{font-size:10px;font-weight:700;color:#52c98d}
+  .call-head .status.err{color:#f0786b}
+  .call-head .chev{color:#5b748e;font-size:11px;transition:.15s}
+  .vtag{font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+  .vtag.ok{background:#143b2c;color:#52c98d}
+  .vtag.rep{background:#3a3315;color:#d9b94a}
+  .cross-banner{background:var(--coral-dim);color:var(--coral);font-size:11.5px;font-weight:600;padding:8px 11px;border-radius:10px;margin-bottom:12px}
+  .call.collapsed .chev{transform:rotate(-90deg)}
+  .call.collapsed .call-body{display:none}
+  .call-body{border-top:1px solid #16283d;padding:10px 11px}
+  .blk{margin-bottom:9px}
+  .blk:last-child{margin-bottom:0}
+  .blk .bt{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5b748e;font-weight:700;margin-bottom:4px}
+  pre{margin:0;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--code-ink);white-space:pre-wrap;word-break:break-word}
+  pre .k{color:#7fb0e0}
+  pre .s{color:#86d29a}
+  pre .n{color:#e0a96d}
+  pre .c{color:#5b748e}
+  .arazzo-trace{font-size:10.5px;color:#6f86a0;padding:8px 11px;border-bottom:1px solid #0d1d30;flex:0 0 auto}
+  .arazzo-trace b{color:#b08ef0}
+
+  .console-empty{color:#5b748e;text-align:center;padding:50px 20px;font-size:12px;line-height:1.6}
+  .console-empty .em{font-size:30px;display:block;margin-bottom:10px;opacity:.6}
+
+  /* responsive */
+  @media (max-width:1180px){
+    .grid{grid-template-columns:260px 1fr 380px}
+    .phone{width:300px}
+  }
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr;height:auto;overflow:auto}
+    .col{height:auto;max-height:none}
+    .col.right{min-height:420px}
+  }
+  :focus-visible{outline:2px solid var(--coral);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">DP</div>
+      <div>DragonPass<small>API Integration Playground</small></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="env-switch" id="envSwitch">
+      <button data-env="sandbox" class="on">Sandbox</button>
+      <button data-env="production">Production</button>
+    </div>
+    <div class="token-pill" id="tokenPill"><span class="dot"></span><span id="tokenTxt">no token</span></div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <section class="col left">
+      <div class="col-head">
+        <div><div class="eyebrow">Step 1</div><h2>Integration features</h2></div>
+      </div>
+      <div class="col-scroll" id="leftScroll"></div>
+    </section>
+
+    <!-- CENTER -->
+    <section class="col center">
+      <div class="col-head">
+        <div><div class="eyebrow">Step 2</div><h2>End-user app preview</h2><div class="sub" id="appSub">Your app, built from the features you enable</div></div>
+      </div>
+      <div class="col-scroll">
+        <div class="center-wrap">
+          <div class="flow-bar">
+            <span class="fb-eye">Active Arazzo flow</span>
+            <span class="fb-name" id="flowName">—</span>
+            <div class="flow-steps" id="flowSteps"></div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="statusbar">
+                <span id="clock">9:41</span>
+                <span class="dots"><i></i><i></i><i></i> ▮</span>
+              </div>
+              <div class="app-head">
+                <button class="back" id="backBtn" style="display:none">‹</button>
+                <div class="logo">A</div>
+                <div class="ti"><b id="appName">Acme Travel</b><span id="appScreenName">Home</span></div>
+              </div>
+              <div class="app-body" id="appBody"></div>
+              <div class="app-tabs" id="appTabs"></div>
+              <div class="toast" id="toast"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="col right console">
+      <div class="col-head">
+        <div><div class="eyebrow">Step 3</div><h2>API calls &amp; responses</h2></div>
+      </div>
+      <div class="arazzo-trace" id="arazzoTrace">Tap anything in the app — the matching DragonPass v2 call appears here.</div>
+      <div class="console-toolbar">
+        <div class="lang-seg" id="langSeg">
+          <button data-lang="curl" class="on">cURL</button>
+          <button data-lang="js">JS</button>
+          <button data-lang="java">Java</button>
+        </div>
+        <div class="sp"></div>
+        <button class="clearbtn" id="clearBtn">Clear</button>
+      </div>
+      <div class="log" id="log">
+        <div class="console-empty"><span class="em">⌘</span>Mocked request / response pairs stream here<br>as the end user moves through the app.</div>
+      </div>
+    </section>
+  </div>
+
+<script>
+/* ============================================================================
+   DragonPass API Integration Playground  — single-file, dependency-free
+   ----------------------------------------------------------------------------
+   API contracts below are wired to the real DragonPass v2 developer portal
+   (apifox / developer.dragonpass.com). Paths, header names, integer module
+   codes, status/category enums and identity fields (ePassId / voucher / dpId /
+   membershipId) match the published schemas.
+
+   VERIFIED endpoints (exact request/response field names from the portal):
+     POST /v2/auth/token
+     POST /v2/users
+     GET  /v2/search/modules
+     POST /v2/orders/{module}/ePasses                 (Create E-pass Order)
+     POST /v2/orders/multiModule/ePasses              (Cross-Module, module:0)
+     POST /v2/orders/{module}/ePasses/prebooking      (E-pass prebooking order)
+     POST /v2/memberships                             (Membership Registration)
+     POST /v2/memberships/qrCodes                     (Dynamic QR)
+     POST /v2/simulations/lounges/redemptions         (Sandbox walk-in)
+   REPRESENTATIVE endpoints (consistent shapes, schema not individually pulled):
+     resource list/details, availability, membership prebooking, preview,
+     eSIM order/top-up, fitness check-in, usage details.  Marked with verified:false.
+
+   ARCHITECTURE — config-driven so it stays expandable:
+     MODULES / CAPABILITIES / SOLUTIONS / PRESETS / FLOWS / API / handleAct
+   ========================================================================== */
+
+/* ---------- DragonPass enums (from portal) ---------- */
+const MODULE_CODE = { Lounge:1, FastTrack:2, SetMeal:3, DiningCoupon:4, DiningDiscount:5,
+  DiningRestaurant:6, Fitness:7, eSIM:8, Transportation:9, Flights:10, LocalOffer:11, CrossModule:0 };
+const MODULE_NAME = { 0:'Cross-Module',1:'Lounge',2:'Fast Track',3:'Set Meal',4:'Dining Coupon',
+  5:'Dining Discount',6:'Dining Restaurant',7:'Fitness',8:'eSIM',9:'Transportation',10:'Flights',11:'Local Offer' };
+const ORDER_STATUS = { 1:'Confirmed',2:'Used',3:'Cancelled',4:'Expired',5:'Pending',10:'Failed' };
+const ORDER_CATEGORY = { 1:'Walk-in',2:'Prebooking',3:'Walk-in & Prebooking' };
+const EPASS_STATUS = { 0:'Pending Activation',1:'Active',2:'Suspended',3:'Cancelled',9:'Expired' };
+/* Cross-Module E-pass supports ONLY these modules (per portal spec) */
+const CROSS_MODULE_SET = [MODULE_CODE.Lounge, MODULE_CODE.SetMeal, MODULE_CODE.DiningCoupon]; // [1,3,4]
+const PROGRAM_ID = '1876920048220766208';
+
+/* ---------- 1. CONFIG: MODULES ----------
+   code = integer module; slug = {module} path segment; sample uses N##### resource ids */
+const MODULES = {
+  lounge:    { code:1, slug:'lounges',  label:'Lounge',     em:'🛋️', blurb:'Airport lounges',     price:'£24', cross:true,
+               sample:[{id:'N00012',name:'Plaza Premium Lounge',loc:'HKG T1',sub:'Open 05:00–22:00'},
+                       {id:'N02207',name:'Aspire Lounge',loc:'LHR T5',sub:'Showers · Bar'}] },
+  fasttrack: { code:2, slug:'fastTrack',label:'Fast Track', em:'⚡', blurb:'Skip the queue',       price:'£9',  cross:false,
+               sample:[{id:'N05510',name:'Security Fast Track',loc:'LHR T5',sub:'Avg wait 4 min'}] },
+  dining:    { code:4, slug:'coupons',  label:'Dining',     em:'🍽️', blurb:'Dining credit & set meals', price:'£15 coupon', cross:true,
+               sample:[{id:'N08841',name:'Plane Food',loc:'LHR T5',sub:'£15 dining coupon'},
+                       {id:'N08845',name:'The Curator Bar',loc:'LHR T2',sub:'Set meal'}] },
+  fitness:   { code:7, slug:'fitness',  label:'Fitness',    em:'🏋️', blurb:'Gyms & wellness',      price:'£18', cross:false, schedule:true,
+               sample:[{id:'N01180',name:'Third Space Spa',loc:'Canary Wharf',sub:'Pool · Sauna'}] },
+  esim:      { code:8, slug:'esims',    label:'eSIM',       em:'📶', blurb:'Travel data',          price:'£6',  cross:false, topup:true,
+               sample:[{id:'N0EU5',name:'Europe 5GB / 30d',loc:'33 countries',sub:'Instant activation'},
+                       {id:'N0GL10',name:'Global 10GB / 30d',loc:'120 countries',sub:'Instant activation'}] },
+};
+const slugToKey = (slug)=> Object.keys(MODULES).find(k=>MODULES[k].slug===slug);
+
+/* ---------- 2. CONFIG: CAPABILITIES ---------- */
+const CAPABILITIES = {
+  search:    { label:'Search & discovery', em:'🔍', desc:'GET /v2/search/modules + resource lists' },
+  prebooking:{ label:'Prebooking',         em:'📅', desc:'Reserve a slot, redeem with a voucher' },
+  walkin:    { label:'Walk-in redemption', em:'🚪', desc:'Show pass (ePassId / QR), redeem on arrival' },
+  qr:        { label:'Dynamic QR',         em:'🔳', desc:'POST /v2/memberships/qrCodes, 60s TTL' },
+  user:      { label:'User management',    em:'👤', desc:'POST /v2/users, list passes & memberships' },
+  push:      { label:'Push events',        em:'📨', desc:'Webhooks for redemption & order status' },
+  sandbox:   { label:'Sandbox simulation', em:'🧪', desc:'POST /v2/simulations/.../redemptions' },
+};
+
+/* ---------- 3. CONFIG: SOLUTIONS ---------- */
+const SOLUTIONS = {
+  epass:      { label:'E-pass',     blurb:'Issue a redeemable pass (ePassId)' },
+  membership: { label:'Membership', blurb:'Member tiers, entitlements & QR' },
+};
+
+/* ---------- 4. CONFIG: PRESETS ---------- */
+const PRESETS = [
+  { id:'card', pi:'💳', title:'Card issuer perk', desc:'Lounge + Fast Track as an E-pass benefit',
+    apply:{ solution:'epass', cross:false, modules:['lounge','fasttrack'], caps:['search','walkin','user','push'] } },
+  { id:'cross', pi:'🎫', title:'Cross-Module pass', desc:'One E-pass across Lounge + Set Meal + Coupon',
+    apply:{ solution:'epass', cross:true, modules:['lounge','dining'], caps:['search','walkin','user','push'] } },
+  { id:'loyalty', pi:'⭐', title:'Loyalty programme', desc:'Membership with tiers, dining & QR',
+    apply:{ solution:'membership', cross:false, modules:['lounge','dining','fitness'], caps:['search','prebooking','qr','user','push'] } },
+  { id:'superapp', pi:'🌍', title:'Travel super-app', desc:'Everything switched on',
+    apply:{ solution:'membership', cross:false, modules:['lounge','fasttrack','dining','fitness','esim'],
+            caps:['search','prebooking','walkin','qr','user','push','sandbox'] } },
+];
+
+/* ---------- 5. CONFIG: FLOWS (Arazzo-style) ---------- */
+const FLOWS = {
+  auth:        { name:'Authenticate', steps:['token'] },
+  discover:    { name:'Discover resources', steps:['token','modulesByLocation','resourceList','resourceDetails'] },
+  issueEpass:  { name:'Issue & redeem E-pass', steps:['token','createUser','issueEpass','walkInRedeem','usageDetails'] },
+  crossModule: { name:'Cross-Module E-pass (1 access, any module)', steps:['token','createUser','issueCrossEpass','redeemLounge','redeemDining','usageDetails'] },
+  prebookEpass:{ name:'E-pass prebooking order', steps:['token','availability','createEpassOrder','orderStatus'] },
+  membership:  { name:'Register membership & redeem', steps:['token','createUser','registerMembership','setEntitlements','dynamicQR','walkInRedeem'] },
+  prebookMember:{ name:'Membership prebooking order', steps:['token','availability','previewOrder','createMemberOrder','orderStatus'] },
+  esim:        { name:'eSIM purchase & top-up', steps:['token','esimOptions','createEsimOrder','topUp'] },
+  fitness:     { name:'Fitness booking & check-in', steps:['token','availability','createFitnessOrder','checkIn'] },
+  sandboxSim:  { name:'Sandbox redemption simulation', steps:['token','simulateRedemption','usageDetails'] },
+};
+const STEP_LABEL = {
+  token:'auth.token', modulesByLocation:'search.modules', resourceList:'resources.list', resourceDetails:'resources.get',
+  createUser:'users.create', issueEpass:'ePasses.create', issueCrossEpass:'multiModule.ePasses',
+  redeemLounge:'redeem(lounge)', redeemDining:'redeem(dining)', walkInRedeem:'redeem', usageDetails:'usage.get',
+  availability:'availability', createEpassOrder:'ePasses.prebooking', orderStatus:'order.get',
+  registerMembership:'memberships.create', setEntitlements:'entitlements.set', dynamicQR:'qrCodes.create',
+  previewOrder:'prebooking.preview', createMemberOrder:'memberships.prebooking', esimOptions:'esim.options',
+  createEsimOrder:'esim.order', topUp:'esim.topup', createFitnessOrder:'fitness.order', checkIn:'fitness.checkin',
+  simulateRedemption:'simulations.redeem',
+};
+
+/* ============================================================================
+   STATE
+   ========================================================================== */
+const state = {
+  env:'sandbox',
+  solution:'epass',
+  cross:false,
+  modules:{ lounge:true, fasttrack:true, dining:false, fitness:false, esim:false },
+  caps:{ search:true, prebooking:false, walkin:true, qr:false, user:true, push:true, sandbox:false },
+  lang:'curl',
+  token:null,
+  user:null,         // { clientUserId, name }
+  pass:null,         // epass/cross: { type, ePassId, orderId, status, allowedModules? }  membership: { type, membershipId, programId, tier }
+  orders:[],
+  nav:{ tab:'home', screen:'home', ctx:null },
+  activeFlow:null, flowProgress:{},
+  qrTimer:null,
+  lastPrebookingToken:null,
+};
+const baseUrl = () => state.env==='sandbox'
+  ? 'https://sandbox-api.dragonpass.com'
+  : 'https://api.dragonpass.com';
+const enabledModules = () => Object.keys(state.modules).filter(m=>state.modules[m]);
+const cap = k => state.caps[k];
+
+/* id helpers */
+const digits = (n)=> Array.from({length:n},()=>Math.floor(Math.random()*10)).join('');
+const ePassId16 = ()=> '17'+digits(14);
+const membershipId16 = ()=> '88'+digits(14);
+const orderId = ()=> 'DP'+digits(14);
+const voucherId = ()=> 'MS'+digits(12);
+const uuid = ()=> 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+  const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
+const clientUserId = ()=> '3EF5D065-'+digits(4)+'-4D3E-801A-'+digits(12).slice(0,12);
+const now = ()=> new Date();
+const isoZ = (d=now())=> d.toISOString().replace(/\.\d+Z$/,'+00:00');
+
+/* ============================================================================
+   API MOCK — each builder returns { method, path, body, response, flow, step,
+   auth?, headers?, verified? }. Response envelope: { code:0, data:{…} }.
+   ========================================================================== */
+const ok  = (data)=>({ code:0, data });
+const err = (code,message)=>({ code, message });
+
+const API = {
+  /* --- Authentication (verified) --- */
+  token(){
+    const tk = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.'+digits(20)+'.'+digits(24);
+    return { method:'POST', path:'/v2/auth/token', auth:false, verified:true,
+      body:{ clientId:'AcmeTravel', secret:'dpSecretKey12345' },
+      response: ok({ accessToken:tk, tokenType:'Bearer', validUntil:Math.floor(Date.now()/1000)+3600 }),
+      flow:'auth', step:'token', after:()=>{ state.token = tk; } };
+  },
+  /* --- User Management (verified) --- */
+  createUser(){
+    const id = clientUserId();
+    return { method:'POST', path:'/v2/users', verified:true,
+      body:{ clientUserId:id, firstName:'Jordan', lastName:'Lee', phoneNumber:'8081966002', callingCode:'44', email:'jordan@example.com' },
+      response: ok({ clientUserId:id, firstName:'Jordan', lastName:'Lee', phoneNumber:'8081966002', callingCode:'44', email:'jordan@example.com' }),
+      flow: state.cross?'crossModule':(state.solution==='epass'?'issueEpass':'membership'), step:'createUser',
+      after:()=>{ state.user={ clientUserId:id, name:'Jordan Lee' }; } };
+  },
+  /* --- Search modules by location (verified) --- */
+  modulesByLocation(){
+    return { method:'GET', path:'/v2/search/modules?transportHubId=A00002&language=en-US', verified:true,
+      response: ok({
+        location:{ cityId:'E01', city:'London', transportHubId:'A00002', transportHubName:'London Heathrow', countryOrRegion:'GB' },
+        language:'en-US',
+        availableModules: enabledModules().map(m=>({ module:MODULES[m].code, quantity:MODULES[m].sample.length })) }),
+      flow:'discover', step:'modulesByLocation' };
+  },
+  /* --- Resource list / details (representative) --- */
+  resourceList(mkey){
+    const m=MODULES[mkey];
+    return { method:'GET', path:`/v2/resources?module=${m.code}&transportHubId=A00002&language=en-US`, verified:false,
+      response: ok({ total:m.sample.length,
+        resources:m.sample.map(r=>({ resourceId:r.id, name:r.name, module:m.code, transportHubId:'A00002', city:r.loc })) }),
+      flow:'discover', step:'resourceList' };
+  },
+  resourceDetails(r,mkey){
+    const m=MODULES[mkey];
+    return { method:'GET', path:`/v2/resources/${r.id}?language=en-US`, verified:false,
+      response: ok({ resourceId:r.id, name:r.name, module:m.code, transportHubId:'A00002',
+        category: cap('prebooking')&&cap('walkin')?3:(cap('prebooking')?2:1),
+        openingHours:'05:00-22:00', amenities:['wifi','seating','refreshments'] }),
+      flow:'discover', step:'resourceDetails' };
+  },
+  /* --- Create E-pass Order (verified) --- */
+  issueEpass(mkey){
+    const m=MODULES[mkey]; const eid=ePassId16(); const oid=orderId(); const cu=state.user?.clientUserId||clientUserId();
+    return { method:'POST', path:`/v2/orders/${m.slug}/ePasses`, verified:true,
+      body:{ module:m.code, clientUserId:cu,
+        extra:{ firstName:'Jordan', lastName:'Lee', expirationDate:isoZ(new Date(Date.now()+365*864e5)),
+          availableUsages:1, allowedResources:{ iata:['LHR'] } } },
+      response: ok({ status:1, module:m.code, category:1, clientUserId:cu, orderId:oid,
+        orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ ePassId:eid, ePassStatus:1, firstName:'Jordan', lastName:'Lee',
+          expirationDate:isoZ(new Date(Date.now()+365*864e5)), availableUsages:1, usedUsages:0,
+          allowedResources:{ iata:['LHR'] } } }),
+      flow:'issueEpass', step:'issueEpass',
+      after:()=>{ state.pass={ type:'epass', module:m.code, ePassId:eid, orderId:oid, status:1 }; } };
+  },
+  /* --- Create Cross-Module E-pass (verified, module:0 → allowedModules) --- */
+  issueCrossEpass(){
+    const eid=ePassId16(); const oid=orderId(); const cu=state.user?.clientUserId||clientUserId();
+    return { method:'POST', path:`/v2/orders/multiModule/ePasses`, verified:true,
+      body:{ module:0, clientUserId:cu,
+        extra:{ firstName:'Jordan', lastName:'Lee', expirationDate:isoZ(new Date(Date.now()+365*864e5)),
+          availableUsages:1, allowedResources:{ resourceIds:[] } } },
+      response: ok({ status:1, module:0, category:1, clientUserId:cu, orderId:oid,
+        orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ ePassId:eid, ePassStatus:1, firstName:'Jordan', lastName:'Lee',
+          expirationDate:isoZ(new Date(Date.now()+365*864e5)), availableUsages:1, usedUsages:0,
+          allowedResources:{ resourceIds:[] }, allowedModules:[...CROSS_MODULE_SET] } }),
+      flow:'crossModule', step:'issueCrossEpass',
+      after:()=>{ state.pass={ type:'cross', module:0, ePassId:eid, orderId:oid, status:1, allowedModules:[...CROSS_MODULE_SET] }; } };
+  },
+  /* --- Membership Registration (verified) --- */
+  registerMembership(){
+    const mid=membershipId16(); const cu=state.user?.clientUserId||clientUserId();
+    return { method:'POST', path:'/v2/memberships', verified:true,
+      body:{ clientUserId:cu, firstName:'Jordan', lastName:'Lee', phoneNumber:'8081966002', callingCode:'44',
+        email:'jordan@example.com', expirationDate:isoZ(new Date(Date.now()+365*864e5)) },
+      response: ok({ programId:PROGRAM_ID, clientUserId:cu, membershipId:mid, status:1,
+        expirationDate:isoZ(new Date(Date.now()+365*864e5)) }),
+      flow:'membership', step:'registerMembership',
+      after:()=>{ state.pass={ type:'membership', membershipId:mid, programId:PROGRAM_ID, tier:'GOLD', status:1 }; } };
+  },
+  /* --- Update entitlements (representative) --- */
+  setEntitlements(){
+    const mid=state.pass?.membershipId||membershipId16();
+    return { method:'PUT', path:`/v2/memberships/${mid}/entitlements`, verified:false,
+      body:{ entitlements: enabledModules().map(m=>({ module:MODULES[m].code, allowance:'UNLIMITED', period:'YEAR' })) },
+      response: ok({ membershipId:mid, entitlements: enabledModules().map(m=>({ module:MODULES[m].code, remaining:'UNLIMITED' })) }),
+      flow:'membership', step:'setEntitlements' };
+  },
+  /* --- Dynamic QR (verified) --- */
+  dynamicQR(){
+    const mid=state.pass?.membershipId||membershipId16();
+    return { method:'POST', path:'/v2/memberships/qrCodes', verified:true,
+      body:{ membershipId:mid, durationInSeconds:60 },
+      response: ok({ qrCode:digits(10), validUntil:Math.floor(Date.now()/1000)+60 }),
+      flow:'membership', step:'dynamicQR' };
+  },
+  /* --- Prebooking availability (representative; returns prebookingToken) --- */
+  availability(r,mkey){
+    const m=MODULES[mkey]; const token=Array.from({length:32},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+    state.lastPrebookingToken=token;
+    return { method:'GET', path:`/v2/resources/${r.id}/prebooking/availability?module=${m.code}&date=${isoZ().slice(0,10)}`, verified:false,
+      response: ok({ resourceId:r.id, prebookingToken:token, options:[
+        { date:isoZ().slice(0,10), time:'08:00', available:true },
+        { date:isoZ().slice(0,10), time:'10:00', available:true },
+        { date:isoZ().slice(0,10), time:'12:00', available:false } ] }),
+      flow: state.solution==='epass'?'prebookEpass':'prebookMember', step:'availability' };
+  },
+  /* --- Preview membership prebooking order (representative) --- */
+  previewOrder(r,mkey){
+    const m=MODULES[mkey];
+    return { method:'POST', path:`/v2/orders/${m.slug}/memberships/prebooking/preview`, verified:false,
+      body:{ module:m.code, membershipId:state.pass?.membershipId, extra:{ prebookingToken:state.lastPrebookingToken } },
+      response: ok({ entitlementBreakdown:[{ module:m.code, type:'ENTITLEMENT', used:1, remaining:'UNLIMITED' }], payable:{ amount:0, currency:'GBP' } }),
+      flow:'prebookMember', step:'previewOrder' };
+  },
+  /* --- Create prebooking order (E-pass verified path / Membership representative) --- */
+  createPrebookingOrder(r,mkey,slot,guests){
+    const m=MODULES[mkey]; const epass=state.solution==='epass'; const oid=orderId(); const vch=voucherId();
+    const path = epass ? `/v2/orders/${m.slug}/ePasses/prebooking` : `/v2/orders/${m.slug}/memberships/prebooking`;
+    const idField = epass ? { ePassId: state.pass?.ePassId } : { membershipId: state.pass?.membershipId };
+    return { method:'POST', path, verified: epass,
+      body:{ module:m.code, ...idField,
+        extra:{ prebookingToken: state.lastPrebookingToken,
+          prebookingRequiredInfo:{ firstName:'Jordan', lastName:'Lee', email:'jordan@example.com',
+            phoneNumber:'8081966002', callingCode:'44', transportNumber:'EK0001' } },
+        async:false },
+      response: ok({ status:1, module:m.code, category:2, orderId:oid, orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ voucher:vch, slot, guests } }),
+      flow: epass?'prebookEpass':'prebookMember', step:'createOrder',
+      after:()=>{ state.orders.unshift({ id:oid, voucher:vch, resName:r.name, module:m.code, status:1, kind:'prebooking', slot }); } };
+  },
+  /* --- eSIM (representative) --- */
+  esimOptions(){
+    return { method:'GET', path:'/v2/resources?module=8&type=options&language=en-US', verified:false,
+      response: ok({ options: MODULES.esim.sample.map(o=>({ resourceId:o.id, name:o.name, coverage:o.loc, price:{amount:6,currency:'GBP'} })) }),
+      flow:'esim', step:'esimOptions' };
+  },
+  createEsimOrder(o){
+    const oid=orderId(); const epass=state.solution==='epass';
+    return { method:'POST', path:`/v2/orders/esims/${epass?'ePasses':'memberships'}/prebooking`, verified:false,
+      body:{ module:8, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}), extra:{ optionId:o.id } },
+      response: ok({ status:1, module:8, category:2, orderId:oid,
+        extra:{ iccid:'8944'+digits(15), activation:'QR', dataRemaining:o.name } }),
+      flow:'esim', step:'createEsimOrder',
+      after:()=>{ state.orders.unshift({ id:oid, resName:o.name, module:8, status:1, kind:'esim' }); } };
+  },
+  topUp(o){
+    return { method:'POST', path:'/v2/orders/esims/topup', verified:false,
+      body:{ ...(state.solution==='epass'?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        iccid:'8944'+digits(15), package:'5GB' },
+      response: ok({ topUpId:'TOP'+digits(8), status:'APPLIED', dataAdded:'5GB' }),
+      flow:'esim', step:'topUp' };
+  },
+  /* --- Fitness (representative) --- */
+  createFitnessOrder(r,session){
+    const oid=orderId(); const vch=voucherId(); const epass=state.solution==='epass';
+    return { method:'POST', path:`/v2/orders/fitness/${epass?'ePasses':'memberships'}/prebooking`, verified:false,
+      body:{ module:7, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        extra:{ prebookingToken:state.lastPrebookingToken, sessionId:session.id } },
+      response: ok({ status:1, module:7, category:2, orderId:oid, extra:{ voucher:vch, session } }),
+      flow:'fitness', step:'createFitnessOrder',
+      after:()=>{ state.orders.unshift({ id:oid, voucher:vch, resName:r.name, module:7, status:1, kind:'fitness' }); } };
+  },
+  checkIn(order){
+    return { method:'POST', path:`/v2/orders/fitness/${state.solution==='epass'?'ePasses':'memberships'}/checkIn`, verified:false,
+      body:{ voucher: order?.voucher||voucherId() },
+      response: ok({ status:2, voucher:order?.voucher, entryVoucher:'EV'+digits(8), checkedInAt:isoZ() }),
+      flow:'fitness', step:'checkIn',
+      after:()=>{ if(order) order.status=2; } };
+  },
+  /* --- Walk-in redemption (push event to client webhook) --- */
+  walkInRedeem(r,mkey){
+    const m=MODULES[mkey]; const dpId = state.pass?.ePassId || state.pass?.membershipId || ePassId16();
+    return { method:'EVENT', path:'webhook → POST https://acme.example.com/dp/events', verified:false,
+      response:{ event:'lounge.walkin.redeemed', dpId, module:m?.code, resourceId:r?.id||'N00012',
+        adultCount:1, childCount:0, redeemedAt:isoZ() },
+      flow: state.cross?'crossModule':(state.solution==='epass'?'issueEpass':'membership'),
+      step: state.cross ? (m?.code===1?'redeemLounge':'redeemDining') : 'walkInRedeem',
+      after:()=>{ state.orders.unshift({ id:orderId(), resName:r?.name||'Lounge', module:m?.code||1, status:2, kind:'walkin' }); } };
+  },
+  /* --- Sandbox simulation (verified) --- */
+  simulateRedemption(r,mkey){
+    const m=MODULES[mkey]; const dpId = state.pass?.ePassId || state.pass?.membershipId || ePassId16();
+    return { method:'POST', path:'/v2/simulations/lounges/redemptions', verified:true,
+      body:{ dpId, adultCount:1, childCount:0 },
+      response: ok({ dpId, transactionId:'DP'+digits(6), message:'Order Created' }),
+      flow: state.cross?'crossModule':'sandboxSim',
+      step: state.cross ? (m?.code===1?'redeemLounge':'redeemDining') : 'simulateRedemption',
+      after:()=>{ state.orders.unshift({ id:'DP'+digits(6), resName:r?.name||'Plaza Premium HKG', module:m?.code||1, status:2, kind:'sandbox' }); } };
+  },
+  /* --- Order status / usage (representative) --- */
+  orderStatus(order){
+    return { method:'GET', path:`/v2/orders/${order?.id||orderId()}?language=en-US`, verified:false,
+      response: ok({ orderId:order?.id, status:order?.status||1, module:order?.module, category:order?.kind==='walkin'?1:2 }),
+      flow: state.solution==='epass'?'prebookEpass':'prebookMember', step:'orderStatus' };
+  },
+  usageDetails(order){
+    return { method:'GET', path:`/v2/orders/${state.solution==='epass'?'ePasses':'memberships'}/usages/${order?.id||orderId()}`, verified:false,
+      response: ok({ orderId:order?.id, module:order?.module, status:order?.status||2,
+        usage:[{ resourceId:'N00012', redeemedAt:isoZ(), adultCount:1, childCount:0 }] }),
+      flow: state.cross?'crossModule':(state.solution==='epass'?'issueEpass':'membership'), step:'usageDetails' };
+  },
+  listPasses(){
+    const cu=state.user?.clientUserId;
+    return { method:'GET', path:`/v2/users/${cu}/ePasses`, verified:false,
+      response: ok({
+        ePasses: (state.pass?.type==='epass'||state.pass?.type==='cross')?[{ ePassId:state.pass.ePassId, module:state.pass.module, status:1 }]:[],
+        memberships: state.pass?.type==='membership'?[{ membershipId:state.pass.membershipId, tier:'GOLD' }]:[] }),
+      flow:'discover', step:'resourceList' };
+  },
+};
+
+/* map generic step → flow-specific step id used in FLOWS */
+function resolveStep(call){
+  if(call.step==='createOrder') return state.solution==='epass'?'createEpassOrder':'createMemberOrder';
+  return call.step;
+}
+
+/* ============================================================================
+   CONSOLE — log a call, render request/response + language snippet
+   ========================================================================== */
+function logCall(call){
+  if(call.auth!==false && !state.token){ logCall(API.token()); }   // auto-auth like a real SDK
+  if(typeof call.after==='function') call.after();
+
+  if(call.flow){
+    state.activeFlow=call.flow;
+    const set = state.flowProgress[call.flow] || (state.flowProgress[call.flow]=new Set());
+    set.add(resolveStep(call));
+    if(state.token && FLOWS[call.flow] && FLOWS[call.flow].steps.includes('token')) set.add('token');
+    renderFlowBar();
+    document.getElementById('arazzoTrace').innerHTML =
+      'Arazzo workflow <b>'+ (FLOWS[call.flow]?.name||call.flow) +'</b>';
+  }
+
+  const log = document.getElementById('log');
+  if(log.querySelector('.console-empty')) log.innerHTML='';
+  const el = document.createElement('div');
+  el.className='call';
+  const good = call.response.code===0 || call.method==='EVENT';
+  const statusTxt = call.method==='EVENT' ? 'webhook' : (good?'200 · code 0':'4xx · code -1');
+  const vbadge = call.verified===false ? '<span class="vtag rep" title="Representative shape — schema not individually verified">≈ shape</span>'
+                                       : '<span class="vtag ok" title="Field names verified against the developer portal">✓ schema</span>';
+  el.innerHTML = `
+    <div class="call-head">
+      <span class="verb ${call.method}">${call.method}</span>
+      <span class="path">${call.path}</span>
+      ${vbadge}
+      <span class="status ${good?'':'err'}">${statusTxt}</span>
+      <span class="chev">▾</span>
+    </div>
+    <div class="call-body">
+      ${call.method!=='EVENT' ? `<div class="blk"><div class="bt">Request</div>${snippet(call)}</div>`:''}
+      <div class="blk"><div class="bt">${call.method==='EVENT'?'Event payload (sent to your webhook)':'Response'}</div><pre>${hl(call.response)}</pre></div>
+    </div>`;
+  el.querySelector('.call-head').addEventListener('click',()=>el.classList.toggle('collapsed'));
+  log.prepend(el);
+  [...log.querySelectorAll('.call')].slice(3).forEach(c=>c.classList.add('collapsed'));
+  updateTokenPill();
+}
+
+/* language-specific request snippet, with real DragonPass headers */
+function snippet(call){
+  if(call.method==='EVENT') return '';
+  const url = baseUrl()+call.path.split('?')[0];
+  const qs  = call.path.includes('?')?('?'+call.path.split('?')[1]):'';
+  const hasBody = call.body && call.method!=='GET';
+  const authH = call.auth===false ? '' : 'Bearer '+(state.token? state.token.slice(0,18)+'…' : '<token>');
+  const headers = [];
+  headers.push(['X-Program-ID', PROGRAM_ID]);
+  if(call.method!=='GET') headers.push(['X-Request-ID', uuid()]);
+  if(call.auth!==false)   headers.push(['Authorization', authH]);
+  if(hasBody)             headers.push(['Content-Type','application/json']);
+
+  if(state.lang==='curl'){
+    let s = `curl -X ${call.method} "${url}${qs}"`;
+    headers.forEach(([k,v])=> s+=` \\\n  -H "${k}: ${v}"`);
+    if(hasBody) s+=` \\\n  -d '${JSON.stringify(call.body)}'`;
+    return `<pre>${hlText(s)}</pre>`;
+  }
+  if(state.lang==='js'){
+    let s = `await fetch("${url}${qs}", {\n  method: "${call.method}",\n  headers: {\n`;
+    s += headers.map(([k,v])=>`    "${k}": "${v}"`).join(',\n');
+    s += `\n  }${hasBody?',\n  body: JSON.stringify('+JSON.stringify(call.body)+')':''}\n});`;
+    return `<pre>${hlText(s)}</pre>`;
+  }
+  // java (OkHttp)
+  let s = `Request req = new Request.Builder()\n  .url("${url}${qs}")\n`;
+  headers.forEach(([k,v])=> s+=`  .header("${k}", "${v}")\n`);
+  if(hasBody) s+=`  .post(RequestBody.create(\n    "${JSON.stringify(call.body).replace(/"/g,'\\"')}",\n    MediaType.parse("application/json")))\n`;
+  else s+=`  .${call.method.toLowerCase()}()\n`;
+  s+=`  .build();`;
+  return `<pre>${hlText(s)}</pre>`;
+}
+
+/* JSON syntax highlighter */
+function hl(obj){
+  const json = JSON.stringify(obj,null,2);
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/"([^"]+)":/g,'<span class="k">"$1"</span>:')
+    .replace(/: "([^"]*)"/g,': <span class="s">"$1"</span>')
+    .replace(/: (-?\d+)/g,': <span class="n">$1</span>')
+    .replace(/: (true|false|null)/g,': <span class="n">$1</span>');
+}
+function hlText(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/("[^"]*")/g,'<span class="s">$1</span>')
+    .replace(/\b(curl|await|fetch|method|headers|body|new|Request|Builder)\b/g,'<span class="k">$1</span>');
+}
+
+/* ============================================================================
+   FLOW BAR
+   ========================================================================== */
+function renderFlowBar(){
+  const f = state.activeFlow && FLOWS[state.activeFlow];
+  document.getElementById('flowName').textContent = f? f.name : '—';
+  const wrap = document.getElementById('flowSteps');
+  if(!f){ wrap.innerHTML=''; return; }
+  const done = state.flowProgress[state.activeFlow] || new Set();
+  wrap.innerHTML = f.steps.map(s=>`<span class="st ${done.has(s)?'done':''}">${STEP_LABEL[s]||s}</span>`).join('');
+}
+
+/* ============================================================================
+   LEFT RAIL
+   ========================================================================== */
+function renderLeft(){
+  const wrap = document.getElementById('leftScroll');
+  wrap.innerHTML = `
+    <div class="section">
+      <div class="label">Scenario presets</div>
+      ${PRESETS.map(p=>`<button class="preset" data-preset="${p.id}">
+        <span class="pi">${p.pi}</span><span><b>${p.title}</b><span>${p.desc}</span></span></button>`).join('')}
+    </div>
+    <div class="section">
+      <div class="label">Issuing model</div>
+      <div class="seg" id="solSeg">
+        ${Object.entries(SOLUTIONS).map(([k,v])=>`<button data-sol="${k}" class="${state.solution===k?'on':''}">${v.label}</button>`).join('')}
+      </div>
+      <div class="hint">${SOLUTIONS[state.solution].blurb}.</div>
+      ${state.solution==='epass' ? `<div class="toggle ${state.cross?'on':''}" data-kind="cross" data-key="cross" style="margin-top:8px">
+        <span class="tg-ic">🎫</span><span class="tg-tx"><b>Cross-Module pass</b><span>One ePass · Lounge + Set Meal + Coupon (1/3/4)</span></span>
+        <span class="switch"></span></div>` : ''}
+    </div>
+    <div class="section">
+      <div class="label">Modules <span style="font-weight:600;text-transform:none;letter-spacing:0">${enabledModules().length} on</span></div>
+      ${Object.entries(MODULES).map(([k,m])=>{
+        const dim = state.cross && !m.cross;   // non-cross modules greyed when cross-module on
+        return toggleRow('mod',k,m.em,m.label+(dim?' · not cross-eligible':''),'module '+m.code+' · /'+m.slug, state.modules[k], dim);
+      }).join('')}
+    </div>
+    <div class="section">
+      <div class="label">Capabilities</div>
+      ${Object.entries(CAPABILITIES).map(([k,c])=>toggleRow('cap',k,c.em,c.label,c.desc,state.caps[k])).join('')}
+    </div>`;
+
+  wrap.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
+  wrap.querySelectorAll('[data-sol]').forEach(b=>b.onclick=()=>{ state.solution=b.dataset.sol; if(state.solution==='membership') state.cross=false; state.pass=null; resetNav(); renderAll(); });
+  wrap.querySelectorAll('.toggle').forEach(t=>t.onclick=()=>{
+    const {kind,key}=t.dataset;
+    if(kind==='cross'){ state.cross=!state.cross; state.pass=null;
+      if(state.cross){ Object.keys(state.modules).forEach(m=>state.modules[m]=MODULES[m].cross && (m==='lounge'||m==='dining')); } }
+    else if(kind==='mod'){ if(state.cross && !MODULES[key].cross) return; state.modules[key]=!state.modules[key]; }
+    else state.caps[key]=!state.caps[key];
+    syncNav(); renderAll();
+  });
+}
+function toggleRow(kind,key,em,title,sub,on,dim){
+  return `<div class="toggle ${on?'on':''} ${dim?'disabled':''}" data-kind="${kind}" data-key="${key}">
+    <span class="tg-ic">${em}</span>
+    <span class="tg-tx"><b>${title}</b><span>${sub}</span></span>
+    <span class="switch"></span></div>`;
+}
+function applyPreset(id){
+  const p = PRESETS.find(x=>x.id===id); if(!p) return;
+  state.solution = p.apply.solution;
+  state.cross = !!p.apply.cross;
+  Object.keys(state.modules).forEach(m=>state.modules[m]=p.apply.modules.includes(m));
+  Object.keys(state.caps).forEach(c=>state.caps[c]=p.apply.caps.includes(c));
+  state.pass=null; state.orders=[]; resetNav(); renderAll();
+}
+
+/* ============================================================================
+   CENTER APP — screen router
+   ========================================================================== */
+function resetNav(){ state.nav={ tab:'home', screen:'home', ctx:null }; }
+function syncNav(){ if(state.nav.tab==='card' && state.solution!=='membership' && !state.pass) resetNav(); }
+function go(screen,ctx){ state.nav.screen=screen; state.nav.ctx=ctx||null; renderApp(); }
+function setTab(tab){ state.nav.tab=tab; state.nav.screen=tab; state.nav.ctx=null; renderApp(); }
+
+function tabsConfig(){
+  const tabs=[{id:'home',ic:'🏠',label:'Discover'},{id:'wallet',ic:'🎟️',label:'Wallet'}];
+  if(state.solution==='membership' || state.pass) tabs.push({id:'card',ic:'💳',label:'Card'});
+  if(cap('user')) tabs.push({id:'profile',ic:'👤',label:'Profile'});
+  return tabs;
+}
+
+function renderApp(){
+  const body=document.getElementById('appBody');
+  const tabs=tabsConfig();
+  if(!tabs.find(t=>t.id===state.nav.tab)) state.nav.tab='home';
+  const sub = ['module','resource','book','esim','fitness'].includes(state.nav.screen);
+  const backBtn=document.getElementById('backBtn');
+  backBtn.style.display = sub?'grid':'none';
+  backBtn.onclick=()=>setTab(state.nav.tab);
+
+  const screenNames={home:'Discover',wallet:'My wallet',card:'My card',profile:'Profile',
+    module:'Browse',resource:'Details',book:'Book a slot',esim:'Data plans',fitness:'Sessions'};
+  document.getElementById('appScreenName').textContent=screenNames[state.nav.screen]||'';
+
+  let html='';
+  switch(state.nav.screen){
+    case 'home':    html=screenHome(); break;
+    case 'module':  html=screenModule(state.nav.ctx); break;
+    case 'resource':html=screenResource(state.nav.ctx); break;
+    case 'book':    html=screenBook(state.nav.ctx); break;
+    case 'esim':    html=screenEsim(); break;
+    case 'fitness': html=screenFitness(state.nav.ctx); break;
+    case 'wallet':  html=screenWallet(); break;
+    case 'card':    html=screenCard(); break;
+    case 'profile': html=screenProfile(); break;
+    default: html=screenHome();
+  }
+  body.innerHTML=html;
+  wireApp(body);
+
+  const tb=document.getElementById('appTabs');
+  tb.innerHTML=tabs.map(t=>`<button class="${state.nav.tab===t.id?'on':''}" data-tab="${t.id}">
+    <span class="ic">${t.ic}</span>${t.label}</button>`).join('');
+  tb.querySelectorAll('button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+  manageQR();
+}
+
+/* ----- screens ----- */
+function screenHome(){
+  const mods=enabledModules();
+  let h='';
+  if(cap('search')) h+=`<div class="searchbar">🔍 Search lounges, dining, more…</div>`;
+  h+=`<div class="loc-chip">📍 London Heathrow · A00002</div>`;
+  if(state.cross) h+=`<div class="cross-banner">🎫 One Cross-Module pass covers every tile below</div>`;
+  if(!mods.length) return h+`<div class="empty"><span class="em">🧩</span>No modules enabled.<br>Turn one on in the left panel.</div>`;
+  h+=`<div class="sec-title">Available here <span>${mods.length} services</span></div><div class="tiles">`;
+  h+=mods.map(m=>`<button class="tile" data-go="module" data-mod="${m}">
+    <span class="em">${MODULES[m].em}</span><b>${MODULES[m].label}</b><span>${MODULES[m].blurb}</span></button>`).join('');
+  h+=`</div>`;
+  return h;
+}
+function screenModule(mkey){
+  if(!mkey||!state.modules[mkey]) return screenHome();
+  const m=MODULES[mkey];
+  if(mkey==='esim') return screenEsim();
+  let h=`<div class="sec-title">${m.em} ${m.label} · LHR</div>`;
+  h+=m.sample.map(r=>`<div class="card-res" data-go="resource" data-mod="${mkey}" data-res="${r.id}">
+    <div class="ph"><span class="em">${m.em}</span><b>${r.name}</b></div>
+    <div class="meta"><span class="sub">${r.loc} · ${r.sub}</span><span class="pricepill">${m.price}</span></div></div>`).join('');
+  return h;
+}
+function screenResource(ctx){
+  const {mod,res}=ctx||{}; const m=MODULES[mod]; const r=m?.sample.find(x=>x.id===res);
+  if(!r) return screenHome();
+  let h=`<div class="card-res" style="cursor:default"><div class="ph" style="height:120px">
+    <span class="em" style="font-size:30px">${m.em}</span><b style="font-size:16px">${r.name}</b></div>
+    <div class="meta"><span class="sub">${r.loc} · ${r.id}</span><span class="pricepill">${m.price}</span></div></div>`;
+  h+=`<p style="font-size:12.5px;color:var(--slate);margin:12px 2px">Open 05:00–22:00 · Wi-Fi · Seating · Complimentary refreshments.</p>`;
+  if(mod==='fitness' && m.schedule){
+    h+=`<button class="btn ink" data-act="fitnessSchedule" data-mod="${mod}" data-res="${res}">View sessions</button>`;
+  } else if(cap('prebooking')){
+    h+=`<button class="btn" data-act="goBook" data-mod="${mod}" data-res="${res}">Book a slot</button>`;
+  }
+  if(cap('walkin')){
+    const lbl = state.pass ? 'Redeem on arrival' : (state.cross?'Get Cross-Module pass & walk in':(state.solution==='epass'?'Get pass & walk in':'Walk in with membership'));
+    h+=`<button class="btn ${cap('prebooking')?'ghost':''}" data-act="walkin" data-mod="${mod}" data-res="${res}">${lbl}</button>`;
+  }
+  if(!cap('prebooking') && !cap('walkin'))
+    h+=`<div class="empty" style="padding:24px"><span class="em">🔌</span>Enable Prebooking or Walk-in to let users act here.</div>`;
+  return h;
+}
+function screenBook(ctx){
+  const {mod,res}=ctx||{}; const m=MODULES[mod]; const r=m?.sample.find(x=>x.id===res);
+  if(!r) return screenHome();
+  const slot=state.nav._slot||'10:00'; const guests=state.nav._guests||1;
+  let h=`<div class="sec-title">Book · ${r.name}</div>`;
+  h+=`<div class="field"><label>Date</label><div class="ctrl">${isoZ().slice(0,10)} <span>📅</span></div></div>`;
+  h+=`<div class="field"><label>Time slot</label><div class="chips" data-slotgroup>
+    ${['08:00','10:00','14:00'].map(s=>`<button data-slot="${s}" class="${s===slot?'on':''}">${s}</button>`).join('')}</div></div>`;
+  h+=`<div class="field"><label>Guests</label><div class="ctrl">
+    <button data-guest="-1">−</button><span data-guests>${guests}</span><button data-guest="1">+</button></div></div>`;
+  if(state.solution==='membership')
+    h+=`<button class="btn ghost" data-act="preview" data-mod="${mod}" data-res="${res}">Preview order</button>`;
+  h+=`<button class="btn" data-act="createOrder" data-mod="${mod}" data-res="${res}">Confirm booking</button>`;
+  return h;
+}
+function screenEsim(){
+  if(!state.modules.esim) return screenHome();
+  let h=`<div class="sec-title">📶 Travel eSIM</div>`;
+  h+=MODULES.esim.sample.map(o=>`<div class="card-res" data-act="esimOrder" data-opt="${o.id}">
+    <div class="ph"><span class="em">📶</span><b>${o.name}</b></div>
+    <div class="meta"><span class="sub">${o.loc}</span><span class="pricepill">${MODULES.esim.price}</span></div></div>`).join('');
+  if(state.orders.find(o=>o.module===8) && MODULES.esim.topup)
+    h+=`<button class="btn ghost" data-act="topup">Top up data (+5GB)</button>`;
+  return h;
+}
+function screenFitness(ctx){
+  const {res}=ctx||{}; const m=MODULES.fitness; const r=m.sample.find(x=>x.id===res)||m.sample[0];
+  const sessions=state.nav._sessions||[];
+  if(!sessions.length) return screenResource({mod:'fitness',res:r.id});
+  let h=`<div class="sec-title">🏋️ ${r.name}</div>`;
+  h+=sessions.map(s=>`<div class="card-res" data-act="fitnessOrder" data-res="${r.id}" data-sess="${s.id}">
+    <div class="meta" style="padding:13px 12px"><span><b>${s.class}</b><br><span class="sub">${s.time}</span></span>
+    <span class="pricepill">Book</span></div></div>`).join('');
+  return h;
+}
+function screenWallet(){
+  if(!state.orders.length && !state.pass)
+    return `<div class="empty"><span class="em">🎟️</span>Nothing here yet.<br>Book or redeem something to see it.</div>`;
+  let h='';
+  if(state.pass){
+    const isE = state.pass.type==='epass'||state.pass.type==='cross';
+    h+=`<div class="sec-title">Active ${isE?'pass':'membership'}</div>`;
+    h+=`<div class="entrow"><span class="ei">${isE?'🎟️':'💳'}</span>
+      <span class="et"><b>${state.pass.type==='cross'?'Cross-Module E-pass':(isE?MODULE_NAME[state.pass.module]+' E-pass':'Gold membership')}</b>
+      <span>${state.pass.ePassId||state.pass.membershipId}</span></span>
+      <span class="badge ok">${isE?EPASS_STATUS[1]:'Active'}</span></div>`;
+  }
+  if(state.orders.length){
+    h+=`<div class="sec-title" style="margin-top:14px">Orders & usage</div>`;
+    h+=state.orders.map(o=>{
+      const b = (o.status===2)?'used':(o.status===1?'ok':'pend');
+      return `<div class="entrow"><span class="ei">${moduleEm(o.module)}</span>
+        <span class="et"><b>${o.resName}</b><span>${o.kind} · ${MODULE_NAME[o.module]||''}${o.slot?' · '+o.slot:''}</span></span>
+        <span class="badge ${b}">${ORDER_STATUS[o.status]||o.status}</span></div>`;
+    }).join('');
+    const last=state.orders[0];
+    h+=`<button class="btn ghost" data-act="usage" data-order="${last.id}">Check usage detail</button>`;
+  }
+  return h;
+}
+function moduleEm(code){ const k=Object.keys(MODULES).find(x=>MODULES[x].code===code); return k?MODULES[k].em:'•'; }
+function screenCard(){
+  if(state.solution==='membership'){
+    if(!state.pass) return `<div class="empty"><span class="em">💳</span>No membership yet.<br><button class="btn" style="max-width:220px;margin:14px auto 0" data-act="register">Register membership</button></div>`;
+    let h=`<div class="passcard member">
+      <div class="pc-top"><div><span class="lbl">Acme Premier</span><b>Gold Member</b></div><span class="tier">GOLD</span></div>
+      <div class="pc-no">${state.pass.membershipId}</div>
+      <div class="pc-foot"><span>Jordan Lee</span><span>DragonPass</span></div></div>`;
+    if(cap('qr')){
+      h+=`<div class="qrbox"><canvas class="qr" id="qrCanvas" width="150" height="150"></canvas>
+        <div class="qr-meta" id="qrToken">generating…</div><div class="qr-count" id="qrCount">refreshes in 60s</div></div>`;
+    } else h+=`<div class="empty" style="padding:22px"><span class="em">🔳</span>Enable Dynamic QR to show a scannable code.</div>`;
+    if(cap('walkin')) h+=`<button class="btn ghost" data-act="walkin" data-mod="${enabledModules()[0]||'lounge'}">Simulate scan at lounge</button>`;
+    return h;
+  }
+  // epass / cross
+  if(!state.pass) return `<div class="empty"><span class="em">🎟️</span>No pass issued yet.<br>Pick a service and choose “Get pass”.</div>`;
+  const cross=state.pass.type==='cross';
+  let h=`<div class="passcard">
+    <div class="pc-top"><div><span class="lbl">${cross?'Cross-Module E-pass':MODULE_NAME[state.pass.module]+' E-pass'}</span><b>${cross?'1 airport service access':'Single-use pass'}</b></div></div>
+    <div class="pc-no">${state.pass.ePassId}</div>
+    <div class="pc-foot"><span>${EPASS_STATUS[1]}</span><span>DragonPass</span></div></div>`;
+  if(cross) h+=`<div class="chips" style="margin-top:12px">${state.pass.allowedModules.map(c=>`<button class="on" style="pointer-events:none">${MODULE_NAME[c]}</button>`).join('')}</div>
+    <div class="hint" style="margin-top:8px">allowedModules: [${state.pass.allowedModules.join(', ')}] — redeem at any one; the usage order re-attributes to the real module.</div>`;
+  if(cap('walkin')) h+=`<button class="btn ghost" data-act="walkin" data-mod="${cross?'lounge':(Object.keys(MODULES).find(k=>MODULES[k].code===state.pass.module)||'lounge')}">Redeem at venue</button>`;
+  return h;
+}
+function screenProfile(){
+  let h=`<div class="sec-title">Profile</div>`;
+  if(!state.user){
+    h+=`<div class="empty" style="padding:22px"><span class="em">👤</span>No user created.</div>
+        <button class="btn" data-act="createUser">Create user</button>`;
+    return h;
+  }
+  h+=`<div class="entrow"><span class="ei">👤</span><span class="et"><b>${state.user.name}</b><span>${state.user.clientUserId}</span></span></div>`;
+  h+=`<button class="btn ghost" data-act="listPasses">List passes &amp; memberships</button>`;
+  return h;
+}
+
+/* ----- wire app interactions ----- */
+function wireApp(body){
+  body.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>{
+    const t=el.dataset.go;
+    if(t==='module'){ const mod=el.dataset.mod;
+      logCall(API.modulesByLocation()); logCall(API.resourceList(mod));
+      go(mod==='esim'?'esim':'module', mod); }
+    if(t==='resource'){ const mod=el.dataset.mod,res=el.dataset.res;
+      const r=MODULES[mod].sample.find(x=>x.id===res);
+      logCall(API.resourceDetails(r,mod)); go('resource',{mod,res}); }
+  });
+  body.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>handleAct(el.dataset));
+  body.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{ state.nav._slot=b.dataset.slot; renderApp(); });
+  body.querySelectorAll('[data-guest]').forEach(b=>b.onclick=()=>{
+    state.nav._guests=Math.max(1,(state.nav._guests||1)+(+b.dataset.guest)); renderApp(); });
+}
+
+function ensurePass(mkey){
+  if(state.pass) return;
+  if(cap('user') && !state.user) logCall(API.createUser());
+  if(state.cross) logCall(API.issueCrossEpass());
+  else if(state.solution==='epass') logCall(API.issueEpass(mkey||enabledModules()[0]));
+  else { logCall(API.registerMembership()); logCall(API.setEntitlements()); }
+}
+
+function handleAct(d){
+  const mod=d.mod, res=d.res;
+  const findRes=()=> mod && MODULES[mod]?.sample.find(x=>x.id===res);
+  switch(d.act){
+    case 'goBook': go('book',{mod,res}); break;
+    case 'createUser': logCall(API.createUser()); toast('User created'); renderApp(); break;
+    case 'register':
+      if(cap('user')&&!state.user) logCall(API.createUser());
+      logCall(API.registerMembership()); logCall(API.setEntitlements());
+      toast('Membership active'); renderApp(); break;
+    case 'walkin': {
+      const r=findRes() || (mod?MODULES[mod].sample[0]:null);
+      ensurePass(mod);
+      if(cap('sandbox')) logCall(API.simulateRedemption(r,mod));
+      else logCall(API.walkInRedeem(r,mod));
+      toast(cap('sandbox')?'Redemption simulated':'Redeemed — webhook fired');
+      go('wallet'); break;
+    }
+    case 'preview': { const r=findRes(); logCall(API.availability(r,mod)); logCall(API.previewOrder(r,mod)); toast('Order previewed'); break; }
+    case 'createOrder': {
+      const r=findRes();
+      ensurePass(mod);
+      logCall(API.availability(r,mod));
+      logCall(API.createPrebookingOrder(r,mod,state.nav._slot||'10:00',state.nav._guests||1));
+      if(cap('push')) logCall(API.orderStatus(state.orders[0]));
+      toast('Booking confirmed'); go('wallet'); break;
+    }
+    case 'esimOrder': {
+      const o=MODULES.esim.sample.find(x=>x.id===d.opt);
+      ensurePass('esim'); logCall(API.esimOptions()); logCall(API.createEsimOrder(o));
+      toast('eSIM activated'); go('wallet'); break;
+    }
+    case 'topup': { const o=state.orders.find(x=>x.module===8); logCall(API.topUp(o)); toast('+5GB added'); break; }
+    case 'fitnessSchedule': {
+      const r=findRes(); const call=API.availability(r,'fitness'); logCall(call);
+      state.nav._sessions=[{id:'S1',time:'07:00',class:'Open gym'},{id:'S2',time:'09:00',class:'Spin'},{id:'S3',time:'18:00',class:'Yoga'}];
+      go('fitness',{mod:'fitness',res}); break;
+    }
+    case 'fitnessOrder': {
+      const r=MODULES.fitness.sample.find(x=>x.id===res); const sess=(state.nav._sessions||[]).find(s=>s.id===d.sess);
+      ensurePass('fitness'); logCall(API.createFitnessOrder(r,sess));
+      if(cap('walkin')||cap('sandbox')) logCall(API.checkIn(state.orders[0]));
+      toast('Session booked'); go('wallet'); break;
+    }
+    case 'usage': { const o=state.orders.find(x=>x.id===d.order)||state.orders[0]; logCall(API.usageDetails(o)); toast('Usage fetched'); break; }
+    case 'listPasses': { logCall(API.listPasses()); toast('Passes listed'); break; }
+  }
+}
+
+/* ----- toast ----- */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+/* ----- dynamic QR ----- */
+function manageQR(){
+  clearInterval(state.qrTimer); state.qrTimer=null;
+  const canvas=document.getElementById('qrCanvas');
+  if(!canvas) return;
+  let secs=60;
+  const draw=()=>{
+    const call=API.dynamicQR(); logCall(call);
+    drawQR(canvas, call.response.data.qrCode);
+    const tk=document.getElementById('qrToken'); if(tk) tk.textContent='qrCode: '+call.response.data.qrCode;
+    secs=60; const c=document.getElementById('qrCount'); if(c) c.textContent='refreshes in 60s';
+  };
+  draw();
+  state.qrTimer=setInterval(()=>{
+    secs--; const c=document.getElementById('qrCount');
+    if(!c){ clearInterval(state.qrTimer); return; }
+    c.textContent='refreshes in '+secs+'s';
+    if(secs<=0) draw();
+  },1000);
+}
+function drawQR(canvas,seed){
+  const ctx=canvas.getContext('2d'); const n=21, cell=canvas.width/n;
+  ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle='#0A2333';
+  let h=0; for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))>>>0;
+  const rnd=()=>{ h=(h*1103515245+12345)>>>0; return (h>>>16)/65535; };
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){ if(rnd()>0.5) ctx.fillRect(x*cell,y*cell,cell,cell); }
+  const finder=(ox,oy)=>{ ctx.fillStyle='#0A2333';ctx.fillRect(ox*cell,oy*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff';ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#0A2333';ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell); };
+  finder(0,0);finder(n-7,0);finder(0,n-7);
+}
+
+/* ============================================================================
+   TOP BAR
+   ========================================================================== */
+function updateTokenPill(){
+  const pill=document.getElementById('tokenPill');
+  if(state.token){ pill.classList.add('live'); document.getElementById('tokenTxt').textContent=state.token.slice(0,14)+'…'; }
+  else { pill.classList.remove('live'); document.getElementById('tokenTxt').textContent='no token'; }
+}
+
+/* ============================================================================
+   BOOT
+   ========================================================================== */
+function renderAll(){ renderLeft(); renderApp(); renderFlowBar(); updateTokenPill(); }
+
+document.getElementById('envSwitch').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  state.env=b.dataset.env;
+  document.getElementById('envSwitch').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  state.token=null; updateTokenPill();
+});
+document.getElementById('langSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  state.lang=b.dataset.lang;
+  document.getElementById('langSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+});
+document.getElementById('clearBtn').onclick=()=>{
+  document.getElementById('log').innerHTML='<div class="console-empty"><span class="em">⌘</span>Cleared. Tap in the app to make new calls.</div>';
+  state.activeFlow=null; state.flowProgress={}; renderFlowBar();
+  document.getElementById('arazzoTrace').innerHTML='Tap anything in the app — the matching DragonPass v2 call appears here.';
+};
+setInterval(()=>{ document.getElementById('clock').textContent=new Date().toTimeString().slice(0,5); },1000);
+
+renderAll();
+</script>
+</body>
+</html>
