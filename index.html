@@ -433,11 +433,11 @@ const MODULES = {
   dining:    { code:4, slug:'coupons',  label:'Dining',     em:'🍽️', blurb:'Dining credit & set meals', price:'£15 coupon', cross:true,
                sample:[{id:'N08841',name:'Plane Food',loc:'LHR T5',sub:'£15 dining coupon'},
                        {id:'N08845',name:'The Curator Bar',loc:'LHR T2',sub:'Set meal'}] },
-  fitness:   { code:7, slug:'fitness',  label:'Fitness',    em:'🏋️', blurb:'Gyms & wellness',      price:'£18', cross:false, schedule:true,
-               sample:[{id:'N01180',name:'Third Space Spa',loc:'Canary Wharf',sub:'Pool · Sauna'}] },
-  esim:      { code:8, slug:'esims',    label:'eSIM',       em:'📶', blurb:'Travel data',          price:'£6',  cross:false, topup:true,
-               sample:[{id:'N0EU5',name:'Europe 5GB / 30d',loc:'33 countries',sub:'Instant activation'},
-                       {id:'N0GL10',name:'Global 10GB / 30d',loc:'120 countries',sub:'Instant activation'}] },
+  fitness:   { code:7, slug:'fitness',  label:'Fitness',    em:'🏋️', blurb:'Gyms & wellness',      price:'from £10', cross:false, schedule:true,
+               sample:[{id:'F00001',name:'DragonPass Fitness Club',loc:'Manchester',sub:'Pool · Sauna'}] },
+  esim:      { code:8, slug:'esims',    label:'eSIM',       em:'📶', blurb:'Travel data',          price:'from £6',  cross:false, topup:true, resourceId:'E00001',
+               sample:[{id:'E00001',name:'eSIM United Kingdom',loc:'United Kingdom',sub:'5G data plans'},
+                       {id:'E00002',name:'eSIM Europe',loc:'33 countries',sub:'5G data plans'}] },
 };
 const slugToKey = (slug)=> Object.keys(MODULES).find(k=>MODULES[k].slug===slug);
 
@@ -481,7 +481,7 @@ const FLOWS = {
   membership:  { name:'Register membership & redeem', steps:['token','createUser','registerMembership','setEntitlements','dynamicQR','walkInRedeem'] },
   prebookMember:{ name:'Membership prebooking order', steps:['token','availability','previewOrder','createMemberOrder','orderStatus'] },
   esim:        { name:'eSIM purchase & top-up', steps:['token','esimOptions','createEsimOrder','topUp'] },
-  fitness:     { name:'Fitness booking & check-in', steps:['token','availability','createFitnessOrder','checkIn'] },
+  fitness:     { name:'Fitness booking & check-in', steps:['token','fitnessSchedule','availability','createFitnessOrder','checkIn'] },
   sandboxSim:  { name:'Sandbox redemption simulation', steps:['token','simulateRedemption','usageDetails'] },
 };
 const STEP_LABEL = {
@@ -491,6 +491,7 @@ const STEP_LABEL = {
   availability:'availability', createEpassOrder:'ePasses.prebooking', orderStatus:'order.get',
   registerMembership:'memberships.create', setEntitlements:'entitlements.set', dynamicQR:'qrCodes.create',
   previewOrder:'prebooking.preview', createMemberOrder:'memberships.prebooking', esimOptions:'esim.options',
+  fitnessSchedule:'fitness.schedule',
   createEsimOrder:'esim.order', topUp:'esim.topup', createFitnessOrder:'fitness.order', checkIn:'fitness.checkin',
   simulateRedemption:'simulations.redeem',
 };
@@ -512,7 +513,7 @@ const state = {
   nav:{ tab:'home', screen:'home', ctx:null },
   activeFlow:null, flowProgress:{},
   qrTimer:null,
-  lastPrebookingToken:null,
+  lastPrebookingToken:null, lastPrice:null,
 };
 const baseUrl = () => state.env==='sandbox'
   ? 'https://sandbox-api.dragonpass.com'
@@ -526,6 +527,7 @@ const ePassId16 = ()=> '17'+digits(14);
 const membershipId16 = ()=> '88'+digits(14);
 const orderId = ()=> 'DP'+digits(14);
 const voucherId = ()=> 'MS'+digits(12);
+const hex32 = ()=> Array.from({length:32},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
 const uuid = ()=> 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
   const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
 const clientUserId = ()=> '3EF5D065-'+digits(4)+'-4D3E-801A-'+digits(12).slice(0,12);
@@ -566,20 +568,24 @@ const API = {
         availableModules: enabledModules().map(m=>({ module:MODULES[m].code, quantity:MODULES[m].sample.length })) }),
       flow:'discover', step:'modulesByLocation' };
   },
-  /* --- Resource list / details (representative) --- */
+  /* --- Resource list (verified) --- */
   resourceList(mkey){
     const m=MODULES[mkey];
-    return { method:'GET', path:`/v2/resources?module=${m.code}&transportHubId=A00002&language=en-US`, verified:false,
-      response: ok({ total:m.sample.length,
-        resources:m.sample.map(r=>({ resourceId:r.id, name:r.name, module:m.code, transportHubId:'A00002', city:r.loc })) }),
+    return { method:'GET', path:`/v2/resources?module=${m.code}&transportHubId=A00002&pageSize=10&pageNumber=1&language=en-US`, verified:true,
+      response: ok({
+        pagination:{ pageSize:10, pageNumber:1, totalNumber:m.sample.length },
+        language:'en-US',
+        resources:{ transportHubResources: m.sample.map(r=>({
+          module:m.code, resourceId:r.id, resourceName:r.name,
+          locationInfo:{ city:r.loc, transportHubId:'A00002', transportHubName:'London Heathrow', iata:'LHR', countryOrRegion:'GB' } })) } }),
       flow:'discover', step:'resourceList' };
   },
   resourceDetails(r,mkey){
     const m=MODULES[mkey];
-    return { method:'GET', path:`/v2/resources/${r.id}?language=en-US`, verified:false,
-      response: ok({ resourceId:r.id, name:r.name, module:m.code, transportHubId:'A00002',
-        category: cap('prebooking')&&cap('walkin')?3:(cap('prebooking')?2:1),
-        openingHours:'05:00-22:00', amenities:['wifi','seating','refreshments'] }),
+    return { method:'GET', path:`/v2/resources/${r.id}?module=${m.code}&language=en-US&fallbackAllowed=true`, verified:true,
+      response: ok({ language:'en-US', module:m.code, resourceId:r.id, resourceName:r.name,
+        locationInfo:{ city:r.loc, countryOrRegion:'GB', continent:'Europe', transportHubId:'A00002', transportHubName:'London Heathrow', iata:'LHR' },
+        businessHours:[{ day:1, openTime:'05:00', closeTime:'22:00' }] }),
       flow:'discover', step:'resourceDetails' };
   },
   /* --- Create E-pass Order (verified) --- */
@@ -623,12 +629,14 @@ const API = {
       flow:'membership', step:'registerMembership',
       after:()=>{ state.pass={ type:'membership', membershipId:mid, programId:PROGRAM_ID, tier:'GOLD', status:1 }; } };
   },
-  /* --- Update entitlements (representative) --- */
-  setEntitlements(){
-    const mid=state.pass?.membershipId||membershipId16();
-    return { method:'PUT', path:`/v2/memberships/${mid}/entitlements`, verified:false,
-      body:{ entitlements: enabledModules().map(m=>({ module:MODULES[m].code, allowance:'UNLIMITED', period:'YEAR' })) },
-      response: ok({ membershipId:mid, entitlements: enabledModules().map(m=>({ module:MODULES[m].code, remaining:'UNLIMITED' })) }),
+  /* --- Update Membership Entitlements (verified; one call per module) --- */
+  setEntitlement(mkey){
+    const mid=state.pass?.membershipId||membershipId16(); const code=MODULES[mkey].code;
+    return { method:'POST', path:'/v2/entitlements/update', verified:true,
+      body:{ membershipId:mid, quantity:1, module:code, usageRestriction:1 },
+      response: ok({ membershipId:mid, entitlements:{ moduleExclusiveEntitlements:[
+        { module:code, details:{ cardholderExclusiveEntitlements:1, guestsExclusiveEntitlements:1,
+          sharedEntitlements:0, purchasedEntitlements:0, allowedGuestsPerUsage:1, maxGuestsNextUse:1 } } ] } }),
       flow:'membership', step:'setEntitlements' };
   },
   /* --- Dynamic QR (verified) --- */
@@ -639,89 +647,141 @@ const API = {
       response: ok({ qrCode:digits(10), validUntil:Math.floor(Date.now()/1000)+60 }),
       flow:'membership', step:'dynamicQR' };
   },
-  /* --- Prebooking availability (representative; returns prebookingToken) --- */
-  availability(r,mkey){
+  /* --- Check Prebooking Resource Availability (verified) --- */
+  availability(r,mkey,slot,guests){
     const m=MODULES[mkey]; const token=Array.from({length:32},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
     state.lastPrebookingToken=token;
-    return { method:'GET', path:`/v2/resources/${r.id}/prebooking/availability?module=${m.code}&date=${isoZ().slice(0,10)}`, verified:false,
-      response: ok({ resourceId:r.id, prebookingToken:token, options:[
-        { date:isoZ().slice(0,10), time:'08:00', available:true },
-        { date:isoZ().slice(0,10), time:'10:00', available:true },
-        { date:isoZ().slice(0,10), time:'12:00', available:false } ] }),
-      flow: state.solution==='epass'?'prebookEpass':'prebookMember', step:'availability' };
+    const price={ dynamicPrice:true, currency:'GBP', adultRate:'24.00', childRate:'12.00' };
+    state.lastPrice=price;
+    const idField = state.solution==='epass' ? { ePassId: state.pass?.ePassId } : { membershipId: state.pass?.membershipId };
+    return { method:'POST', path:'/v2/resources/prebookings/availability', verified:true,
+      body:{ ...idField, module:m.code, resourceId:r.id,
+        prebookingDate:`${isoZ().slice(0,10)}T${slot||'10:00'}`, adultCount:guests||1, childCount:0 },
+      response: ok({ available:true, prebookingToken:token, validUntil:Math.floor(Date.now()/1000)+1800, price }),
+      flow: state.cross?'crossModule':(state.solution==='epass'?'prebookEpass':'prebookMember'), step:'availability' };
   },
-  /* --- Preview membership prebooking order (representative) --- */
-  previewOrder(r,mkey){
-    const m=MODULES[mkey];
-    return { method:'POST', path:`/v2/orders/${m.slug}/memberships/prebooking/preview`, verified:false,
-      body:{ module:m.code, membershipId:state.pass?.membershipId, extra:{ prebookingToken:state.lastPrebookingToken } },
-      response: ok({ entitlementBreakdown:[{ module:m.code, type:'ENTITLEMENT', used:1, remaining:'UNLIMITED' }], payable:{ amount:0, currency:'GBP' } }),
+  /* --- Preview Membership Prebooking Order (verified; Lounge/Fast Track only) --- */
+  previewOrder(r,mkey,guests){
+    const m=MODULES[mkey]; const n=guests||1;
+    return { method:'POST', path:`/v2/orders/${m.slug}/memberships/prebooking/preview`, verified:true,
+      body:{ module:m.code, membershipId:state.pass?.membershipId,
+        extra:{ prebookingToken:state.lastPrebookingToken, cashPaymentApplied:false,
+          toUseEntitlementCount:n, toUseEntitlementDetail:{ cardholder:1, guest:Math.max(0,n-1) } } },
+      response: ok({ toUseEntitlementCount:n, cashPaymentApplied:false,
+        entitlementBreakdown:{ cardholder:1, guest:Math.max(0,n-1) },
+        payable:{ amount:'0.00', currency:'GBP' } }),
       flow:'prebookMember', step:'previewOrder' };
   },
-  /* --- Create prebooking order (E-pass verified path / Membership representative) --- */
+  /* --- Create prebooking order (E-pass + Membership, verified requests) --- */
   createPrebookingOrder(r,mkey,slot,guests){
-    const m=MODULES[mkey]; const epass=state.solution==='epass'; const oid=orderId(); const vch=voucherId();
+    const m=MODULES[mkey]; const epass=state.solution==='epass'; const oid=orderId(); const vch=digits(12); const n=guests||1;
     const path = epass ? `/v2/orders/${m.slug}/ePasses/prebooking` : `/v2/orders/${m.slug}/memberships/prebooking`;
-    const idField = epass ? { ePassId: state.pass?.ePassId } : { membershipId: state.pass?.membershipId };
-    return { method:'POST', path, verified: epass,
-      body:{ module:m.code, ...idField,
-        extra:{ prebookingToken: state.lastPrebookingToken,
-          prebookingRequiredInfo:{ firstName:'Jordan', lastName:'Lee', email:'jordan@example.com',
-            phoneNumber:'8081966002', callingCode:'44', transportNumber:'EK0001' } },
-        async:false },
+    const reqInfo = { firstName:'Jordan', lastName:'Lee', email:'jordan@example.com', phoneNumber:'8081966002', callingCode:'44', transportNumber:'EK0001' };
+    const body = epass
+      ? { module:m.code, ePassId:state.pass?.ePassId,
+          extra:{ prebookingToken:state.lastPrebookingToken, prebookingRequiredInfo:reqInfo }, async:false }
+      : { module:m.code, membershipId:state.pass?.membershipId,
+          extra:{ prebookingToken:state.lastPrebookingToken, cashPaymentApplied:false,
+            toUseEntitlementCount:n, toUseEntitlementDetail:{ cardholder:1, guest:Math.max(0,n-1) }, prebookingRequiredInfo:reqInfo } };
+    return { method:'POST', path, verified:true, body,
       response: ok({ status:1, module:m.code, category:2, orderId:oid, orderCreatedDate:isoZ(), orderCancelledDate:null,
-        extra:{ voucher:vch, slot, guests } }),
+        extra:{ vouchersList:[{ voucher:vch, voucherType:1 }] } }),
       flow: epass?'prebookEpass':'prebookMember', step:'createOrder',
       after:()=>{ state.orders.unshift({ id:oid, voucher:vch, resName:r.name, module:m.code, status:1, kind:'prebooking', slot }); } };
   },
-  /* --- eSIM (representative) --- */
-  esimOptions(){
-    return { method:'GET', path:'/v2/resources?module=8&type=options&language=en-US', verified:false,
-      response: ok({ options: MODULES.esim.sample.map(o=>({ resourceId:o.id, name:o.name, coverage:o.loc, price:{amount:6,currency:'GBP'} })) }),
+  /* --- Retrieve eSIM Resources Options (verified) --- */
+  esimOptions(resourceId){
+    const rid=resourceId||'E00001';
+    return { method:'GET', path:`/v2/resources/esims/${rid}/options?pageSize=10&pageNumber=1&language=en-US`, verified:true,
+      response: ok({ pagination:{ pageSize:10, pageNumber:1, totalNumber:3 }, resourceId:rid, resourceName:'eSIM United Kingdom',
+        optionList:[
+          { optionId:rid+'-01', optionName:'eSIM United Kingdom - 10GB 5Days', duration:5, dataMode:1, totalVolume:10, unit:1 },
+          { optionId:rid+'-02', optionName:'eSIM United Kingdom - 1GB 1Day', duration:1, dataMode:1, totalVolume:1, unit:1 },
+          { optionId:rid+'-03', optionName:'eSIM United Kingdom - Unlimited 10Days', duration:10, dataMode:2, totalVolume:-1, unit:3 } ] }),
       flow:'esim', step:'esimOptions' };
   },
-  createEsimOrder(o){
-    const oid=orderId(); const epass=state.solution==='epass';
-    return { method:'POST', path:`/v2/orders/esims/${epass?'ePasses':'memberships'}/prebooking`, verified:false,
-      body:{ module:8, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}), extra:{ optionId:o.id } },
-      response: ok({ status:1, module:8, category:2, orderId:oid,
-        extra:{ iccid:'8944'+digits(15), activation:'QR', dataRemaining:o.name } }),
+  /* --- Create E-pass Prebooking Order - eSIM (verified) --- */
+  createEsimOrder(opt){
+    const epass=state.solution==='epass'||state.cross; const oid=orderId(); const iccid='898600F'+digits(13);
+    const vol = opt.totalVolume<0 ? -1 : opt.totalVolume*1073741824;
+    return { method:'POST', path:`/v2/orders/esims/${epass?'ePasses':'memberships'}/prebooking`, verified:epass,
+      body:{ module:8, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        extra:{ prebookingToken: state.lastPrebookingToken||hex32() } },
+      response: ok({ status:1, module:8, category:2, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        orderId:oid, orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ clientUserId:state.user?.clientUserId||clientUserId(), prebookingDate:null, usageDate:null, usedUsages:1,
+          resourceId:'E00001', resourceName:'eSIM United Kingdom',
+          vouchersList:[{ voucher:digits(12), voucherType:1 }],
+          esim:{ iccid, status:1, effectiveDate:isoZ(), expirationDate:isoZ(new Date(Date.now()+365*864e5)) },
+          esimOptions:{ optionId:opt.optionId, optionName:opt.optionName, status:2, duration:opt.duration, dataMode:opt.dataMode,
+            volume:{ total:vol, remaining:vol, dailyLimit:-1 }, speed:'5G',
+            providers:[{ provider:'DragonPass', region:'GB' }], coverage:{ type:1, regions:['GB'], rawText:'United Kingdom' } },
+          esimOrderType:1 } }),
       flow:'esim', step:'createEsimOrder',
-      after:()=>{ state.orders.unshift({ id:oid, resName:o.name, module:8, status:1, kind:'esim' }); } };
+      after:()=>{ state.orders.unshift({ id:oid, resName:opt.optionName, module:8, status:1, kind:'esim', iccid }); } };
   },
-  topUp(o){
-    return { method:'POST', path:'/v2/orders/esims/topup', verified:false,
-      body:{ ...(state.solution==='epass'?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
-        iccid:'8944'+digits(15), package:'5GB' },
-      response: ok({ topUpId:'TOP'+digits(8), status:'APPLIED', dataAdded:'5GB' }),
+  /* --- Top up eSIM Data package (verified) --- */
+  topUp(order){
+    const epass=state.solution==='epass'||state.cross;
+    return { method:'POST', path:`/v2/orders/esims/${epass?'ePasses':'memberships'}/topup`, verified:epass,
+      body:{ module:8, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        extra:{ prebookingToken:hex32(), iccid: order?.iccid||'898600F'+digits(13) } },
+      response: ok({ status:1, module:8, category:2, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        orderId:orderId(), orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ resourceId:'E00001', resourceName:'eSIM United Kingdom', vouchersList:[{ voucher:digits(12), voucherType:1 }],
+          esim:{ iccid:order?.iccid||'898600F'+digits(13), status:1 }, esimOrderType:2 } }),
       flow:'esim', step:'topUp' };
   },
-  /* --- Fitness (representative) --- */
-  createFitnessOrder(r,session){
-    const oid=orderId(); const vch=voucherId(); const epass=state.solution==='epass';
-    return { method:'POST', path:`/v2/orders/fitness/${epass?'ePasses':'memberships'}/prebooking`, verified:false,
+  /* --- Retrieve Fitness Resources Schedule (verified) --- */
+  fitnessSchedule(r){
+    const d=isoZ().slice(0,10);
+    return { method:'GET', path:`/v2/resources/fitness/${r.id}/schedule?startDate=${d}&endDate=${d}&fallbackAllowed=true&expand=price`, verified:true,
+      response: ok({ resourceId:r.id, resourceName:r.name, schedules:[{ date:d, optionList:[
+        { optionId:r.id+'-01', optionName:'Hatha Yoga', optionType:2, startTime:'10:00', endTime:'11:00',
+          price:{ currency:'GBP', lastUpdatedTime:isoZ(), pricingMode:1, pricing:{ basePrice:25.0, prebookingFee:null } } },
+        { optionId:r.id+'-02', optionName:'Spin Class', optionType:2, startTime:'11:00', endTime:'12:00',
+          price:{ currency:'GBP', lastUpdatedTime:isoZ(), pricingMode:1, pricing:{ basePrice:25.0, prebookingFee:null } } },
+        { optionId:r.id+'-dayPass', optionName:'Day Pass', optionType:1, startTime:'08:00', endTime:'20:00',
+          price:{ currency:'GBP', lastUpdatedTime:isoZ(), pricingMode:1, pricing:{ basePrice:10.0, prebookingFee:null } } } ] }] }),
+      flow:'fitness', step:'fitnessSchedule' };
+  },
+  /* --- Create E-pass Prebooking Order - Fitness (verified) --- */
+  createFitnessOrder(r,opt){
+    const epass=state.solution==='epass'||state.cross; const oid=orderId();
+    return { method:'POST', path:`/v2/orders/fitness/${epass?'ePasses':'memberships'}/prebooking`, verified:epass,
       body:{ module:7, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
-        extra:{ prebookingToken:state.lastPrebookingToken, sessionId:session.id } },
-      response: ok({ status:1, module:7, category:2, orderId:oid, extra:{ voucher:vch, session } }),
+        extra:{ prebookingToken: state.lastPrebookingToken||hex32(),
+          prebookingRequiredInfo:{ firstName:'Jordan', lastName:'Lee', email:'jordan@example.com', phoneNumber:'8081966002', callingCode:'44' } } },
+      response: ok({ status:1, module:7, category:2, ...(epass?{ePassId:state.pass?.ePassId}:{membershipId:state.pass?.membershipId}),
+        orderId:oid, orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ clientUserId:state.user?.clientUserId||clientUserId(), prebookingDate:`${isoZ().slice(0,10)}T${opt.startTime}`, usageDate:null, usedUsages:1,
+          resourceId:r.id, resourceName:r.name, city:r.loc, countryOrRegion:'GB',
+          vouchersList:[{ voucher:digits(12), voucherType:1 }],
+          fitnessOptions:{ optionId:opt.optionId, optionName:opt.optionName, optionType:opt.optionType,
+            startTime:opt.startTime, endTime:opt.endTime, description:'Access during the booked session.',
+            highlights:['Full access to facilities'], language:['English'], includes:['Towel'], excludes:['Sportswear'],
+            notes:['Please check-in at least 20 min before the class starts.'] } } }),
       flow:'fitness', step:'createFitnessOrder',
-      after:()=>{ state.orders.unshift({ id:oid, voucher:vch, resName:r.name, module:7, status:1, kind:'fitness' }); } };
+      after:()=>{ state.orders.unshift({ id:oid, resName:opt.optionName, module:7, status:1, kind:'fitness' }); } };
   },
   checkIn(order){
-    return { method:'POST', path:`/v2/orders/fitness/${state.solution==='epass'?'ePasses':'memberships'}/checkIn`, verified:false,
-      body:{ voucher: order?.voucher||voucherId() },
-      response: ok({ status:2, voucher:order?.voucher, entryVoucher:'EV'+digits(8), checkedInAt:isoZ() }),
+    return { method:'POST', path:`/v2/orders/fitness/checkin`, verified:true,
+      body:{ orderId: order?.id||orderId() },
+      response: ok({ orderId:order?.id, status:2, vouchersList:[{ voucher:digits(12), voucherType:1 }] }),
       flow:'fitness', step:'checkIn',
       after:()=>{ if(order) order.status=2; } };
   },
-  /* --- Walk-in redemption (push event to client webhook) --- */
+  /* --- Lounge/Dining Walk-in Redemption Event (verified webhook payload) --- */
   walkInRedeem(r,mkey){
-    const m=MODULES[mkey]; const dpId = state.pass?.ePassId || state.pass?.membershipId || ePassId16();
-    return { method:'EVENT', path:'webhook → POST https://acme.example.com/dp/events', verified:false,
-      response:{ event:'lounge.walkin.redeemed', dpId, module:m?.code, resourceId:r?.id||'N00012',
-        adultCount:1, childCount:0, redeemedAt:isoZ() },
+    const m=MODULES[mkey]; const dpId = state.pass?.ePassId || state.pass?.membershipId || ePassId16(); const oid=orderId();
+    return { method:'EVENT', path:'webhook → POST https://acme.example.com/dp/events', verified:true,
+      response:{ eventType:'walkin.redemption', orderId:oid, programId:PROGRAM_ID, dpId, module:m?.code||1,
+        status:2, orderCreatedDate:isoZ(), usageDate:isoZ(), orderCancelledDate:null,
+        transportHubId:'A00002', transportHubName:'London Heathrow', resourceId:r?.id||'N00012', resourceName:r?.name||'Plaza Premium Lounge',
+        passengers:{ cardholder:1, guests:0 } },
       flow: state.cross?'crossModule':(state.solution==='epass'?'issueEpass':'membership'),
       step: state.cross ? (m?.code===1?'redeemLounge':'redeemDining') : 'walkInRedeem',
-      after:()=>{ state.orders.unshift({ id:orderId(), resName:r?.name||'Lounge', module:m?.code||1, status:2, kind:'walkin' }); } };
+      after:()=>{ state.orders.unshift({ id:oid, resName:r?.name||'Lounge', module:m?.code||1, status:2, kind:'walkin' }); } };
   },
   /* --- Sandbox simulation (verified) --- */
   simulateRedemption(r,mkey){
@@ -733,24 +793,44 @@ const API = {
       step: state.cross ? (m?.code===1?'redeemLounge':'redeemDining') : 'simulateRedemption',
       after:()=>{ state.orders.unshift({ id:'DP'+digits(6), resName:r?.name||'Plaza Premium HKG', module:m?.code||1, status:2, kind:'sandbox' }); } };
   },
-  /* --- Order status / usage (representative) --- */
+  /* --- Prebooking Order Status Change Event (verified webhook payload) --- */
   orderStatus(order){
-    return { method:'GET', path:`/v2/orders/${order?.id||orderId()}?language=en-US`, verified:false,
-      response: ok({ orderId:order?.id, status:order?.status||1, module:order?.module, category:order?.kind==='walkin'?1:2 }),
+    return { method:'EVENT', path:'webhook → POST https://acme.example.com/dp/events', verified:true,
+      response:{ eventType:'prebooking.statusChanged', orderId:order?.id, programId:PROGRAM_ID,
+        dpId: state.pass?.ePassId||state.pass?.membershipId, module:order?.module||1,
+        previousStatus:5, currentStatus:1, statusChangedDate:isoZ(), remarks:null },
       flow: state.solution==='epass'?'prebookEpass':'prebookMember', step:'orderStatus' };
   },
+  /* --- Retrieve E-pass/Membership Usage Order Details (verified) --- */
   usageDetails(order){
-    return { method:'GET', path:`/v2/orders/${state.solution==='epass'?'ePasses':'memberships'}/usages/${order?.id||orderId()}`, verified:false,
-      response: ok({ orderId:order?.id, module:order?.module, status:order?.status||2,
-        usage:[{ resourceId:'N00012', redeemedAt:isoZ(), adultCount:1, childCount:0 }] }),
-      flow: state.cross?'crossModule':(state.solution==='epass'?'issueEpass':'membership'), step:'usageDetails' };
+    const epass = state.solution==='epass' || state.cross;
+    return { method:'POST', path:`/v2/orders/${epass?'ePasses':'memberships'}/details`, verified:true,
+      body:{ orderId: order?.id||orderId() },
+      response: ok({ status:order?.status||2, module:order?.module||1, category:order?.kind==='walkin'?1:2,
+        ...(epass?{ePassId:state.pass?.ePassId||ePassId16()}:{membershipId:state.pass?.membershipId||membershipId16()}),
+        orderId:order?.id, orderCreatedDate:isoZ(), orderCancelledDate:null,
+        extra:{ clientUserId:state.user?.clientUserId||clientUserId(), usageDate:isoZ(), resourceId:'N00012', adultCount:1, childCount:0 } }),
+      flow: state.cross?'crossModule':(epass?'issueEpass':'membership'), step:'usageDetails' };
   },
+  /* --- Retrieve User E-passes List (verified) --- */
   listPasses(){
-    const cu=state.user?.clientUserId;
-    return { method:'GET', path:`/v2/users/${cu}/ePasses`, verified:false,
-      response: ok({
-        ePasses: (state.pass?.type==='epass'||state.pass?.type==='cross')?[{ ePassId:state.pass.ePassId, module:state.pass.module, status:1 }]:[],
-        memberships: state.pass?.type==='membership'?[{ membershipId:state.pass.membershipId, tier:'GOLD' }]:[] }),
+    const cu=state.user?.clientUserId||clientUserId();
+    const ep = (state.pass?.type==='epass'||state.pass?.type==='cross') ? [{ ePassId:state.pass.ePassId, status:1 }] : [];
+    return { method:'POST', path:'/v2/users/ePasses', verified:true,
+      body:{ clientUserId:cu, status:1, pageSize:10, pageNumber:1 },
+      response: ok({ pagination:{ pageSize:10, pageNumber:1, totalNumber:ep.length }, ePassesList:ep }),
+      flow:'discover', step:'resourceList' };
+  },
+  /* --- Retrieve E-pass Order List (verified) --- */
+  orderList(){
+    const orders = state.orders.filter(o=>o.kind!=='sandbox').slice(0,5).map(o=>({
+      orderId:o.id, status:o.status, usedUsages:o.status===2?1:0, module:o.module,
+      category:o.kind==='walkin'?1:2, orderCreatedDate:isoZ(), resourceId:'N00012', resourceName:o.resName,
+      image:'https://image.dragonpass.com/uploadFile/images/cover.png',
+      extra:{ optionId:null, optionName:null, transportHubId:'A00002', transportHubName:'London Heathrow', city:'London', countryOrRegion:'GB' } }));
+    return { method:'POST', path:'/v2/orders/ePasses', verified:true,
+      body:{ ePassId: state.pass?.ePassId||ePassId16(), pageSize:10, pageNumber:1 },
+      response: ok({ pagination:{ pageSize:10, pageNumber:1, totalNumber:orders.length }, orders }),
       flow:'discover', step:'resourceList' };
   },
 };
@@ -1036,22 +1116,33 @@ function screenBook(ctx){
 }
 function screenEsim(){
   if(!state.modules.esim) return screenHome();
-  let h=`<div class="sec-title">📶 Travel eSIM</div>`;
-  h+=MODULES.esim.sample.map(o=>`<div class="card-res" data-act="esimOrder" data-opt="${o.id}">
-    <div class="ph"><span class="em">📶</span><b>${o.name}</b></div>
-    <div class="meta"><span class="sub">${o.loc}</span><span class="pricepill">${MODULES.esim.price}</span></div></div>`).join('');
+  // Step 1: choose an eSIM resource → Step 2: show its data-plan options (from API)
+  if(!state.nav._esimOpts){
+    let h=`<div class="sec-title">📶 Travel eSIM <span>choose region</span></div>`;
+    h+=MODULES.esim.sample.map(o=>`<div class="card-res" data-act="esimBrowse" data-res="${o.id}">
+      <div class="ph"><span class="em">📶</span><b>${o.name}</b></div>
+      <div class="meta"><span class="sub">${o.loc} · ${o.id}</span><span class="pricepill">${MODULES.esim.price}</span></div></div>`).join('');
+    return h;
+  }
+  const unit=v=> v<0?'Unlimited':(v+'GB');
+  let h=`<div class="sec-title">📶 Data plans <span>${state.nav._esimRes}</span></div>`;
+  h+=state.nav._esimOpts.map(o=>`<div class="card-res" data-act="esimOrder" data-opt="${o.optionId}">
+    <div class="meta" style="padding:13px 12px"><span><b>${unit(o.totalVolume)} · ${o.duration} day${o.duration>1?'s':''}</b><br>
+    <span class="sub">${o.optionName}</span></span><span class="pricepill">Buy</span></div></div>`).join('');
   if(state.orders.find(o=>o.module===8) && MODULES.esim.topup)
-    h+=`<button class="btn ghost" data-act="topup">Top up data (+5GB)</button>`;
+    h+=`<button class="btn ghost" data-act="topup">Top up data</button>`;
   return h;
 }
 function screenFitness(ctx){
   const {res}=ctx||{}; const m=MODULES.fitness; const r=m.sample.find(x=>x.id===res)||m.sample[0];
-  const sessions=state.nav._sessions||[];
-  if(!sessions.length) return screenResource({mod:'fitness',res:r.id});
-  let h=`<div class="sec-title">🏋️ ${r.name}</div>`;
-  h+=sessions.map(s=>`<div class="card-res" data-act="fitnessOrder" data-res="${r.id}" data-sess="${s.id}">
-    <div class="meta" style="padding:13px 12px"><span><b>${s.class}</b><br><span class="sub">${s.time}</span></span>
-    <span class="pricepill">Book</span></div></div>`).join('');
+  const opts=state.nav._fitOpts||[];
+  if(!opts.length) return screenResource({mod:'fitness',res:r.id});
+  const typeName=t=> t===1?'Day Pass':'Class';
+  let h=`<div class="sec-title">🏋️ ${r.name} <span>today</span></div>`;
+  h+=opts.map(s=>`<div class="card-res" data-act="fitnessOrder" data-res="${r.id}" data-opt="${s.optionId}">
+    <div class="meta" style="padding:13px 12px"><span><b>${s.optionName}</b><br>
+    <span class="sub">${typeName(s.optionType)} · ${s.startTime}–${s.endTime}</span></span>
+    <span class="pricepill">${s.price?s.price.currency+' '+s.price.pricing.basePrice.toFixed(0):'Book'}</span></div></div>`).join('');
   return h;
 }
 function screenWallet(){
@@ -1076,6 +1167,7 @@ function screenWallet(){
     }).join('');
     const last=state.orders[0];
     h+=`<button class="btn ghost" data-act="usage" data-order="${last.id}">Check usage detail</button>`;
+    if(state.solution==='epass'||state.cross) h+=`<button class="btn ghost" data-act="orderList">Order history</button>`;
   }
   return h;
 }
@@ -1124,6 +1216,7 @@ function wireApp(body){
     const t=el.dataset.go;
     if(t==='module'){ const mod=el.dataset.mod;
       logCall(API.modulesByLocation()); logCall(API.resourceList(mod));
+      if(mod==='esim') state.nav._esimOpts=null;
       go(mod==='esim'?'esim':'module', mod); }
     if(t==='resource'){ const mod=el.dataset.mod,res=el.dataset.res;
       const r=MODULES[mod].sample.find(x=>x.id===res);
@@ -1135,12 +1228,13 @@ function wireApp(body){
     state.nav._guests=Math.max(1,(state.nav._guests||1)+(+b.dataset.guest)); renderApp(); });
 }
 
+function grantEntitlements(){ enabledModules().forEach(m=>logCall(API.setEntitlement(m))); }
 function ensurePass(mkey){
   if(state.pass) return;
   if(cap('user') && !state.user) logCall(API.createUser());
   if(state.cross) logCall(API.issueCrossEpass());
   else if(state.solution==='epass') logCall(API.issueEpass(mkey||enabledModules()[0]));
-  else { logCall(API.registerMembership()); logCall(API.setEntitlements()); }
+  else { logCall(API.registerMembership()); grantEntitlements(); }
 }
 
 function handleAct(d){
@@ -1151,7 +1245,7 @@ function handleAct(d){
     case 'createUser': logCall(API.createUser()); toast('User created'); renderApp(); break;
     case 'register':
       if(cap('user')&&!state.user) logCall(API.createUser());
-      logCall(API.registerMembership()); logCall(API.setEntitlements());
+      logCall(API.registerMembership()); grantEntitlements();
       toast('Membership active'); renderApp(); break;
     case 'walkin': {
       const r=findRes() || (mod?MODULES[mod].sample[0]:null);
@@ -1161,34 +1255,44 @@ function handleAct(d){
       toast(cap('sandbox')?'Redemption simulated':'Redeemed — webhook fired');
       go('wallet'); break;
     }
-    case 'preview': { const r=findRes(); logCall(API.availability(r,mod)); logCall(API.previewOrder(r,mod)); toast('Order previewed'); break; }
+    case 'preview': { const r=findRes(); const g=state.nav._guests||1; logCall(API.availability(r,mod,state.nav._slot||'10:00',g)); logCall(API.previewOrder(r,mod,g)); toast('Order previewed'); break; }
     case 'createOrder': {
-      const r=findRes();
+      const r=findRes(); const g=state.nav._guests||1;
       ensurePass(mod);
-      logCall(API.availability(r,mod));
-      logCall(API.createPrebookingOrder(r,mod,state.nav._slot||'10:00',state.nav._guests||1));
+      logCall(API.availability(r,mod,state.nav._slot||'10:00',g));
+      logCall(API.createPrebookingOrder(r,mod,state.nav._slot||'10:00',g));
       if(cap('push')) logCall(API.orderStatus(state.orders[0]));
       toast('Booking confirmed'); go('wallet'); break;
     }
+    case 'esimBrowse': {
+      const call=API.esimOptions(res); logCall(call);
+      state.nav._esimOpts=call.response.data.optionList; state.nav._esimRes=res;
+      go('esim'); break;
+    }
     case 'esimOrder': {
-      const o=MODULES.esim.sample.find(x=>x.id===d.opt);
-      ensurePass('esim'); logCall(API.esimOptions()); logCall(API.createEsimOrder(o));
+      const o=(state.nav._esimOpts||[]).find(x=>x.optionId===d.opt); if(!o) break;
+      ensurePass('esim');
+      logCall(API.availability({id:state.nav._esimRes||'E00001'},'esim',null,1));
+      logCall(API.createEsimOrder(o));
       toast('eSIM activated'); go('wallet'); break;
     }
-    case 'topup': { const o=state.orders.find(x=>x.module===8); logCall(API.topUp(o)); toast('+5GB added'); break; }
+    case 'topup': { const o=state.orders.find(x=>x.module===8); logCall(API.topUp(o)); toast('Data topped up'); break; }
     case 'fitnessSchedule': {
-      const r=findRes(); const call=API.availability(r,'fitness'); logCall(call);
-      state.nav._sessions=[{id:'S1',time:'07:00',class:'Open gym'},{id:'S2',time:'09:00',class:'Spin'},{id:'S3',time:'18:00',class:'Yoga'}];
+      const r=findRes(); const call=API.fitnessSchedule(r); logCall(call);
+      state.nav._fitOpts=call.response.data.schedules[0].optionList; state.nav._fitRes=r.id;
       go('fitness',{mod:'fitness',res}); break;
     }
     case 'fitnessOrder': {
-      const r=MODULES.fitness.sample.find(x=>x.id===res); const sess=(state.nav._sessions||[]).find(s=>s.id===d.sess);
-      ensurePass('fitness'); logCall(API.createFitnessOrder(r,sess));
+      const r=MODULES.fitness.sample.find(x=>x.id===res); const opt=(state.nav._fitOpts||[]).find(s=>s.optionId===d.opt);
+      ensurePass('fitness');
+      logCall(API.availability(r,'fitness',opt?.startTime||'10:00',1));
+      logCall(API.createFitnessOrder(r,opt));
       if(cap('walkin')||cap('sandbox')) logCall(API.checkIn(state.orders[0]));
       toast('Session booked'); go('wallet'); break;
     }
     case 'usage': { const o=state.orders.find(x=>x.id===d.order)||state.orders[0]; logCall(API.usageDetails(o)); toast('Usage fetched'); break; }
     case 'listPasses': { logCall(API.listPasses()); toast('Passes listed'); break; }
+    case 'orderList': { logCall(API.orderList()); toast('Orders fetched'); break; }
   }
 }
 
