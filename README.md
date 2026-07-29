@@ -3,7 +3,7 @@
 A three-column sandbox that lets a developer feel what integrating the DragonPass
 v2 API does to the end-user experience. Toggle features on the left, watch the
 mocked app rebuild in the middle, and read the matching API request/response
-pairs on the right — all driven by the real Arazzo workflow set.
+pairs on the right — every endpoint modelled from the published v2 specs.
 
 ```
 ┌──────────────┬──────────────────────┬───────────────────────┐
@@ -47,20 +47,23 @@ Open **Live** in the top bar and a *Connection* panel appears in the left rail.
 | X-Program-ID | The program id DragonPass assigned you |
 | Auth | Either **Client creds** (`clientId` + `secret` → `POST /v2/auth/token`) or **Access token** (paste a JWT you signed yourself — see the portal's HS256/RS256 notes) |
 
-Then press **Connect**. The token pill in the top bar lights up and every
-subsequent tap in the phone mock issues a real request.
+Then press **Connect**. The Connection panel confirms the token, and every
+subsequent tap in the phone issues a real request.
 
-**You must run it through `serve.py` for live mode to work.** The DragonPass API
-sends no CORS headers, so a browser cannot call it directly from the page's
-origin. `serve.py` exposes a small forwarder at `/__dp_proxy` that relays the
-request. It is deliberately narrow: bound to `127.0.0.1`, **https only**, and
-**only to `*.dragonpass.com`** — anything else is refused. The playground probes
-for it at boot and tells you in the Connection panel whether it found it.
+**No server or proxy is required.** The sandbox's gateway is CORS-permissive —
+it returns `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Headers: *`
+on both the preflight and the response — so the browser calls it directly. Live
+mode therefore works from any served origin: localhost, GitHub Pages, or any
+static host.
+
+The wildcard is valid for these requests because the token travels in an
+`Authorization` header rather than a cookie; `*` is only refused for requests
+that set `credentials: 'include'`, which this never does.
 
 Credentials live in the tab's memory for as long as it is open. Nothing is
 written to disk, `localStorage` or `sessionStorage`, and the client secret is
-replaced with `<your-client-secret>` in the generated cURL/JS/Java snippets so
-they are safe to copy and paste.
+replaced with `<your-client-secret>` in the generated snippets so they are safe
+to copy and paste.
 
 ---
 
@@ -68,9 +71,32 @@ they are safe to copy and paste.
 
 ### Easiest — just open the file
 Double-click **`index.html`**. It is fully self-contained (no build step, no
-server, works offline) and runs in any modern browser. For a mock-mode demo this
-is all you need. (Live mode needs the localhost server below, for the CORS
-forwarder.)
+server, no dependencies) and runs in any modern browser — this is all you need
+for a mock-mode demo, and it works offline. For **live** mode, serve it over
+localhost (below) or a static host.
+
+### Hosting it (GitHub Pages or any static host)
+
+`index.html` is the entire application — every asset, including the icon font
+and the DragonPass logo, is inlined. Deployment is "commit the file":
+
+```bash
+git add index.html && git commit -m "Deploy playground" && git push
+# then: repo Settings → Pages → deploy from branch
+```
+
+It works unchanged at a project path such as `you.github.io/dp-playground/` —
+nothing in the page resolves a relative URL. No `.nojekyll` is needed (there are
+no underscore-prefixed files). Pages serves over HTTPS, so calling the HTTPS
+sandbox raises no mixed-content problem, and **live mode works on the deployed
+page with no extra infrastructure**.
+
+Two things worth knowing before you publish one publicly:
+
+- Anyone who opens it can use live mode **with their own credentials**. Nothing
+  is baked into the page, credentials never leave the tab except to DragonPass,
+  and there is no shared state — but it is a public tool, not a private one.
+- It is sandbox-only by construction. There is no production switch to fat-finger.
 
 ### As a localhost server (the "exe-style" experience)
 Needs Python 3 (already on macOS/Linux; on Windows install from python.org and
@@ -174,14 +200,14 @@ variants exist — and `MODULES` encodes it as `walkin` / `prebook` flags:
 | eSIM | 8 | ❌ | ✅ (option-level) |
 | Local Offer | 11 | ❌ | ✅ (option-level) |
 
-So Fast Track never shows "Redeem on arrival", Set Meal and Dining never show
+So Fast Track never shows "Get Pass", Set Meal and Dining never show
 "Book a slot", and each says why rather than silently hiding the control.
 Resource cards carry a green **Pre-booking available** pill driven by the same
 flag.
 
 ### Pass display
 
-"Redeem on arrival" issues the pass (creating the user implicitly) and then
+"Get Pass" issues the pass (creating the user implicitly) and then
 shows it, exactly as a real app would — the redemption fires from the pass
 screen, not from the venue listing. Both variants follow the portal's
 [UI Design Guidelines](https://apifox.dragonpass.com/apidoc/docs-site/6000000/338654m0):
