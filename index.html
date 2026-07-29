@@ -2090,7 +2090,7 @@ function renderRecipeBar(){
   const r = RECIPES[state.recipe];
   if(!r){
     wrap.innerHTML = `<div class="rc-idle"><i class="ic ic-list"></i>
-      Pick a guided recipe on the left to walk a journey end to end — or just explore the app freely.</div>`;
+      Pick a guided flow on the left to walk a journey end to end — or just explore the app freely.</div>`;
     return;
   }
   const done = state.recipeProgress[state.recipe] || new Set();
@@ -2110,7 +2110,7 @@ function renderRecipeBar(){
       </li>`).join('')}
     </ol>
     ${complete
-      ? `<div class="rc-hint ok"><i class="ic ic-badge-check"></i> Recipe complete — every call is in the console on the right.</div>`
+      ? `<div class="rc-hint ok"><i class="ic ic-badge-check"></i> Guide complete — every call is in the console on the right.</div>`
       : (r.steps[nextIdx]?.hint
           ? `<div class="rc-hint"><i class="ic ic-angle-small-right"></i> Next: ${esc(r.steps[nextIdx].hint)}</div>`
           : '')}`;
@@ -2177,10 +2177,10 @@ function renderLeft(){
   wrap.innerHTML = `
     ${state.mode==='live' ? renderConnection() : ''}
     <div class="section">
-      <div class="label">Guided recipes</div>
+      <div class="label">Guided flows</div>
       ${Object.entries(RECIPES).map(([id,r])=>`<button class="preset ${state.recipe===id?'on':''}" data-recipe="${id}">
         <span class="pi">${icon(r.icon)}</span><span><b>${esc(r.title)}</b><span>${esc(r.blurb)}</span></span></button>`).join('')}
-      <div class="hint">A recipe switches on what it needs and ticks off each step as you reach it.</div>
+      <div class="hint">The guidle will switch to the modules it requires for the low.</div>
     </div>
     <div class="section">
       <div class="label">Scenario presets</div>
