@@ -8,7 +8,7 @@ pairs on the right — every endpoint modelled from the published v2 specs.
 ```
 ┌──────────────┬──────────────────────┬───────────────────────┐
 │ 1 · Features │ 2 · End-user app     │ 3 · API calls         │
-│ recipes,     │ a DragonPass-styled  │ request + response,   │
+│ flows,       │ a DragonPass-styled  │ request + response,   │
 │ presets,     │ phone that rebuilds  │ cURL / JS / Py /      │
 │ modules,     │ as you flip features │ Java / C#,            │
 │ capabilities │ + admin console      │ Postman export        │
@@ -165,7 +165,7 @@ config blocks near the top of the `<script>`:
 | A product module (e.g. Spa) | `MODULES` | give it an `icon` (a sprite symbol id), blurb, price, `walkin`/`prebook` flags and a couple of `sample` resources — a tile and list screen appear automatically. Set `lifestyle:true` if it is not hub-bound, `options:true` if orders are placed at the option level |
 | A capability toggle | `CAPABILITIES` | add the entry; wire any screen logic where `cap('yourKey')` is checked |
 | A one-click scenario | `PRESETS` | list the `modules` and `caps` it switches on |
-| A guided journey | `RECIPES` | list steps with the endpoint each `match`es; they tick automatically |
+| A guided journey | `GUIDED_FLOWS` | list steps with the endpoint each `match`es; they tick automatically |
 | A test fixture | `PERSONAS` | PII plus `adults`/`children`; `PERSON` resolves to the selected one |
 | An API endpoint | `API.*` | return `{ method, path, body, response }` and call `logCall()` from a handler in `handleAct()` |
 
@@ -228,7 +228,7 @@ may cause verification to fail." When Dynamic QR is switched off, the membership
 card falls back to a static QR of the membership ID.
 - **Capabilities:** search & discovery, prebooking, walk-in redemption, dynamic QR, user management, **cancel & amend**, **pricing queries**, push events (webhooks + recovery), sandbox simulation
 - **Auth:** JWT bearer token via `POST /v2/auth/token`, auto-fetched on first call
-- **Guided recipes:** issue & redeem a pass · pre-book a lounge · cross-module pass · membership & entitlements · buy an eSIM · claim a local offer. Picking one switches on what it needs and ticks each step off as you reach its endpoint.
+- **Guided flows:** issue & redeem a pass · pre-book a lounge · cross-module pass · membership & entitlements · buy an eSIM · claim a local offer. Picking one switches on what it needs and ticks each step off as you reach its endpoint.
 - **Test personas:** Jordan Lee (solo, UK), Priya Raman (cardholder + guest, SG), Tomás Duarte (family of four, BR) — they drive the PII and passenger counts in every request body.
 - **Shareable permalink:** the scenario is encoded in the URL fragment. Credentials never are; `serialiseState()` reads a fixed whitelist and there is a test asserting no credential substring can reach the URL.
 - **Export:** copy any request or response, snippets in cURL / JS / Python / Java / C#, and a one-click Postman v2.1 collection of the session.

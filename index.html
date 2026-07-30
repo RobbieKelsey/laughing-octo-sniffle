@@ -114,35 +114,35 @@
 
   /* ---------- Center / phone ---------- */
   .center-wrap{display:flex;flex-direction:column;align-items:center;padding:22px 16px 30px;gap:14px}
-  /* ---------- Guided recipe checklist (above the phone) ---------- */
-  .recipe-bar{
+  /* ---------- Guided flow checklist (above the phone) ---------- */
+  .guided-flow{
     width:100%;max-width:560px;background:#fff;border:1px solid var(--hair);border-radius:12px;padding:11px 14px
   }
-  .rc-idle{font-size:11.5px;color:var(--slate);display:flex;align-items:center;gap:8px;line-height:1.45}
-  .rc-idle .ic{font-size:13px;color:var(--hair-2);flex:0 0 auto}
-  .rc-head{display:flex;align-items:flex-start;gap:10px}
-  .rc-ic{width:28px;height:28px;border-radius:8px;background:var(--coral-dim);color:var(--coral);
+  .gf-idle{font-size:11.5px;color:var(--slate);display:flex;align-items:center;gap:8px;line-height:1.45}
+  .gf-idle .ic{font-size:13px;color:var(--hair-2);flex:0 0 auto}
+  .gf-head{display:flex;align-items:flex-start;gap:10px}
+  .gf-ic{width:28px;height:28px;border-radius:8px;background:var(--coral-dim);color:var(--coral);
     display:grid;place-items:center;font-size:13px;flex:0 0 auto}
-  .rc-t{flex:1;min-width:0}
-  .rc-t b{font-size:13px;display:block;line-height:1.2}
-  .rc-t span{font-size:11px;color:var(--slate);display:block;margin-top:1px;line-height:1.4}
-  .rc-count{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--slate);
+  .gf-t{flex:1;min-width:0}
+  .gf-t b{font-size:13px;display:block;line-height:1.2}
+  .gf-t span{font-size:11px;color:var(--slate);display:block;margin-top:1px;line-height:1.4}
+  .gf-count{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--slate);
     background:var(--canvas);padding:3px 8px;border-radius:20px;flex:0 0 auto}
-  .rc-count.ok{background:var(--good-dim);color:var(--good)}
-  .rc-x{border:0;background:transparent;color:var(--hair-2);font-size:12px;padding:2px 0 0;flex:0 0 auto}
-  .rc-x:hover{color:var(--coral)}
-  .rc-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;gap:4px;flex-wrap:wrap}
-  .rc-steps li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--slate);
+  .gf-count.ok{background:var(--good-dim);color:var(--good)}
+  .gf-x{border:0;background:transparent;color:var(--hair-2);font-size:12px;padding:2px 0 0;flex:0 0 auto}
+  .gf-x:hover{color:var(--coral)}
+  .gf-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;gap:4px;flex-wrap:wrap}
+  .gf-steps li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--slate);
     background:var(--canvas);border-radius:20px;padding:3px 9px 3px 4px}
-  .rc-steps li .rc-dot{width:16px;height:16px;border-radius:50%;background:#fff;color:var(--slate);
+  .gf-steps li .gf-dot{width:16px;height:16px;border-radius:50%;background:#fff;color:var(--slate);
     display:grid;place-items:center;font-size:9px;font-weight:700;font-family:var(--mono);flex:0 0 auto}
-  .rc-steps li.done{background:var(--good-dim);color:var(--good)}
-  .rc-steps li.done .rc-dot{background:var(--good);color:#fff;font-size:8px}
-  .rc-steps li.next{background:var(--ink);color:#fff}
-  .rc-steps li.next .rc-dot{background:rgba(255,255,255,.22);color:#fff}
-  .rc-hint{margin-top:8px;font-size:11px;color:var(--slate);display:flex;align-items:center;gap:6px;line-height:1.4}
-  .rc-hint.ok{color:var(--good)}
-  .rc-hint .ic{font-size:11px;flex:0 0 auto}
+  .gf-steps li.done{background:var(--good-dim);color:var(--good)}
+  .gf-steps li.done .gf-dot{background:var(--good);color:#fff;font-size:8px}
+  .gf-steps li.next{background:var(--ink);color:#fff}
+  .gf-steps li.next .gf-dot{background:rgba(255,255,255,.22);color:#fff}
+  .gf-hint{margin-top:8px;font-size:11px;color:var(--slate);display:flex;align-items:center;gap:6px;line-height:1.4}
+  .gf-hint.ok{color:var(--good)}
+  .gf-hint .ic{font-size:11px;flex:0 0 auto}
 
   .phone{
     width:340px;background:#000;border-radius:38px;padding:11px;box-shadow:0 20px 50px -18px rgba(10,35,51,.55);
@@ -678,7 +678,7 @@
       </div>
       <div class="col-scroll">
         <div class="center-wrap">
-          <div class="recipe-bar" id="recipeBar"></div>
+          <div class="guided-flow" id="guidedFlow"></div>
           <div class="phone">
             <div class="screen">
               <div class="statusbar">
@@ -739,7 +739,7 @@
               TRANSPORT). Credentials live in memory only; nothing is persisted.
 
    ARCHITECTURE — config-driven so it stays expandable:
-     MODULES / CAPABILITIES / SOLUTIONS / PRESETS / RECIPES / API / handleAct
+     MODULES / CAPABILITIES / SOLUTIONS / PRESETS / GUIDED_FLOWS / API / handleAct
    Every API.* builder returns { method, path, body?, response, flow, step,
    auth?, verified?, after?(data) }. after() receives the EFFECTIVE response
    data — the live payload in live mode — so state carries real ids.
@@ -840,14 +840,14 @@ const PRESETS = [
             caps:['search','prebooking','walkin','qr','user','lifecycle','pricing','push','sandbox'] } },
 ];
 
-/* ---------- 5. CONFIG: RECIPES (guided journeys) ----------
+/* ---------- 5. CONFIG: GUIDED_FLOWS (guided journeys) ----------
    Replaces the old Arazzo flow bar. Steps are keyed on the ENDPOINT each one
-   calls, not on an internal step id, so a recipe ticks off whenever the user
+   calls, not on an internal step id, so a flow ticks off whenever the user
    reaches that endpoint by any route. `match` is tested against call.path;
    `client:true` marks a step the integrator fulfils themselves (rendering a
-   voucher), ticked via markRecipeStep(). The full Arazzo definitions this
+   voucher), ticked via markGuidedFlowStep(). The full Arazzo definitions this
    replaced are preserved in ARAZZO.md. */
-const RECIPES = {
+const GUIDED_FLOWS = {
   issueRedeem: { title:'Issue & redeem a pass', icon:'ticket',
     blurb:'The shortest path to a working integration: authenticate, issue an E-pass, redeem it.',
     apply:{ solution:'epass', cross:false, modules:['lounge'], caps:['search','walkin','user'] },
@@ -940,7 +940,7 @@ const state = {
   hubChosen:false, searchHits:null, searchQuery:'',
   persona:'jordan',
   nav:{ tab:'home', screen:'home', ctx:null },
-  recipe:null, recipeProgress:{}, exported:[],
+  guidedFlow:null, guidedFlowProgress:{}, exported:[],
   qrTimer:null, qrScreenKey:null, lastQr:null,
   lastPrebookingToken:null, lastPrice:null, lastVoucher:null,
   /* live-mode connection — in memory only, never persisted */
@@ -963,12 +963,12 @@ const dpIdOf = ()=> state.pass?.ePassId || state.pass?.membershipId || ePassId16
 
 /* ============================================================================
    SHAREABLE PERMALINK
-   Encodes the scenario — issuing model, modules, capabilities, recipe, persona,
+   Encodes the scenario — issuing model, modules, capabilities, guided flow, persona,
    chosen hub — into the URL fragment so a colleague can open the exact same
    setup. Credentials are NEVER included: `serialise()` reads a fixed whitelist
    of keys, so nothing from state.conn can reach the URL even by accident.
    ========================================================================== */
-const PERMALINK_KEYS = ['solution','cross','modules','caps','recipe','persona','hub','mode'];
+const PERMALINK_KEYS = ['solution','cross','modules','caps','guidedFlow','persona','hub','mode'];
 
 function serialiseState(){
   const p = new URLSearchParams();
@@ -976,7 +976,7 @@ function serialiseState(){
   if(state.cross) p.set('x','1');
   p.set('m', enabledModules().join('.'));
   p.set('c', Object.keys(state.caps).filter(k=>state.caps[k]).join('.'));
-  if(state.recipe) p.set('r', state.recipe);
+  if(state.guidedFlow) p.set('r', state.guidedFlow);
   if(state.persona!=='jordan') p.set('p', state.persona);
   if(state.hubChosen) p.set('h', state.hub.id+'~'+state.hub.iata+'~'+state.hub.name);
   return p.toString();
@@ -995,7 +995,7 @@ function applySerialised(str){
     const on=new Set(p.get('c').split('.').filter(Boolean));
     Object.keys(state.caps).forEach(k=>state.caps[k]=on.has(k));
   }
-  if(p.has('r') && RECIPES[p.get('r')]) state.recipe=p.get('r');
+  if(p.has('r') && GUIDED_FLOWS[p.get('r')]) state.guidedFlow=p.get('r');
   if(p.has('p') && PERSONAS[p.get('p')]) state.persona=p.get('p');
   if(p.has('h')){
     const [id,iata,...rest]=p.get('h').split('~');
@@ -1059,7 +1059,7 @@ async function copyText(text){
    ========================================================================== */
 function liveHeaders(call){
   const h = { 'X-Program-ID': programId() };
-  if(call.method!=='GET') h['X-Request-ID'] = uuid();
+  h['X-Request-ID'] = uuid();   // required on EVERY request, GET included
   if(call.auth!==false)   h['Authorization'] = 'Bearer ' + (state.token||'');
   if(call.body && call.method!=='GET') h['Content-Type'] = 'application/json';
   return h;
@@ -1806,21 +1806,21 @@ const API = {
   },
 };
 
-/* ---- guided recipes: tick a step when its endpoint is reached ---- */
-function recipeSteps(){ return (RECIPES[state.recipe]||{}).steps || []; }
-function advanceRecipe(call){
-  if(!state.recipe) return;
-  const done = state.recipeProgress[state.recipe] || (state.recipeProgress[state.recipe]=new Set());
+/* ---- guided flows: tick a step when its endpoint is reached ---- */
+function guidedFlowSteps(){ return (GUIDED_FLOWS[state.guidedFlow]||{}).steps || []; }
+function advanceGuidedFlow(call){
+  if(!state.guidedFlow) return;
+  const done = state.guidedFlowProgress[state.guidedFlow] || (state.guidedFlowProgress[state.guidedFlow]=new Set());
   const probe = call.method==='EVENT' ? (call.response?.eventType||'') : call.path;
   let hit=false;
-  recipeSteps().forEach((s,i)=>{ if(!s.client && s.match && probe.includes(s.match) && !done.has(i)){ done.add(i); hit=true; } });
-  if(hit) renderRecipeBar();
+  guidedFlowSteps().forEach((s,i)=>{ if(!s.client && s.match && probe.includes(s.match) && !done.has(i)){ done.add(i); hit=true; } });
+  if(hit) renderGuidedFlow();
 }
 /* Mark a step the integrator fulfils themselves rather than by calling the API. */
-function markRecipeStep(recipeId, index){
-  if(state.recipe!==recipeId) return;
-  const done = state.recipeProgress[recipeId] || (state.recipeProgress[recipeId]=new Set());
-  done.add(index); renderRecipeBar();
+function markGuidedFlowStep(flowId, index){
+  if(state.guidedFlow!==flowId) return;
+  const done = state.guidedFlowProgress[flowId] || (state.guidedFlowProgress[flowId]=new Set());
+  done.add(index); renderGuidedFlow();
 }
 
 /* ============================================================================
@@ -1867,7 +1867,7 @@ async function execCall(input){
   }
 
   patchCall(el, call, { live, body, http, ms, error, succeeded });
-  if(succeeded) advanceRecipe(call);
+  if(succeeded) advanceGuidedFlow(call);
   return body;
 }
 
@@ -1944,7 +1944,7 @@ function snippet(call){
   const authH = call.auth===false ? '' : 'Bearer '+(state.token? state.token.slice(0,18)+'…' : '<token>');
   const headers = [];
   headers.push(['X-Program-ID', programId()]);
-  if(call.method!=='GET') headers.push(['X-Request-ID', uuid()]);
+  headers.push(['X-Request-ID', uuid()]);   // required on every request, GET included
   if(call.auth!==false)   headers.push(['Authorization', authH]);
   if(hasBody)             headers.push(['Content-Type','application/json']);
   /* Never echo a real client secret into a copyable snippet. */
@@ -2003,7 +2003,7 @@ function postmanCollection(){
   const items = state.exported.filter(c=>c.method!=='EVENT').map(c=>{
     const [pathPart, query] = c.path.split('?');
     const hdrs = [{key:'X-Program-ID', value:programId()}];
-    if(c.method!=='GET') hdrs.push({key:'X-Request-ID', value:'{{$guid}}'});
+    hdrs.push({key:'X-Request-ID', value:'{{$guid}}'});   // required on every request, GET included
     if(c.auth!==false)   hdrs.push({key:'Authorization', value:'Bearer {{accessToken}}'});
     const hasBody = !!(c.body && c.method!=='GET');
     if(hasBody) hdrs.push({key:'Content-Type', value:'application/json'});
@@ -2028,7 +2028,7 @@ function postmanCollection(){
   });
   return {
     info: {
-      name: 'DragonPass v2 — '+(RECIPES[state.recipe]?.title || 'Playground session'),
+      name: 'DragonPass v2 — '+(GUIDED_FLOWS[state.guidedFlow]?.title || 'Playground session'),
       description: 'Exported from the DragonPass API Integration Playground. '+
         'Set accessToken (and clientSecret if you use POST /v2/auth/token) before running.',
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
@@ -2083,39 +2083,39 @@ function hlText(s){
 /* ============================================================================
    FLOW BAR
    ========================================================================== */
-/* The guided-recipe checklist that sits above the phone. */
-function renderRecipeBar(){
-  const wrap = document.getElementById('recipeBar');
+/* The guided-flow checklist that sits above the phone. */
+function renderGuidedFlow(){
+  const wrap = document.getElementById('guidedFlow');
   if(!wrap) return;
-  const r = RECIPES[state.recipe];
+  const r = GUIDED_FLOWS[state.guidedFlow];
   if(!r){
-    wrap.innerHTML = `<div class="rc-idle"><i class="ic ic-list"></i>
+    wrap.innerHTML = `<div class="gf-idle"><i class="ic ic-list"></i>
       Pick a guided flow on the left to walk a journey end to end — or just explore the app freely.</div>`;
     return;
   }
-  const done = state.recipeProgress[state.recipe] || new Set();
+  const done = state.guidedFlowProgress[state.guidedFlow] || new Set();
   const nextIdx = r.steps.findIndex((s,i)=>!done.has(i));
   const complete = nextIdx === -1;
   wrap.innerHTML = `
-    <div class="rc-head">
-      <span class="rc-ic"><i class="ic ic-${esc(r.icon)}"></i></span>
-      <div class="rc-t"><b>${esc(r.title)}</b><span>${esc(r.blurb)}</span></div>
-      <span class="rc-count ${complete?'ok':''}">${done.size}/${r.steps.length}</span>
-      <button class="rc-x" data-recipe-clear title="Leave this recipe"><i class="ic ic-cross-small"></i></button>
+    <div class="gf-head">
+      <span class="gf-ic"><i class="ic ic-${esc(r.icon)}"></i></span>
+      <div class="gf-t"><b>${esc(r.title)}</b><span>${esc(r.blurb)}</span></div>
+      <span class="gf-count ${complete?'ok':''}">${done.size}/${r.steps.length}</span>
+      <button class="gf-x" data-flow-clear title="Leave this flow"><i class="ic ic-cross-small"></i></button>
     </div>
-    <ol class="rc-steps">
+    <ol class="gf-steps">
       ${r.steps.map((s,i)=>`<li class="${done.has(i)?'done':(i===nextIdx?'next':'')}">
-        <span class="rc-dot">${done.has(i)?'<i class="ic ic-check"></i>':(i+1)}</span>
-        <span class="rc-l">${esc(s.label)}</span>
+        <span class="gf-dot">${done.has(i)?'<i class="ic ic-check"></i>':(i+1)}</span>
+        <span class="gf-l">${esc(s.label)}</span>
       </li>`).join('')}
     </ol>
     ${complete
-      ? `<div class="rc-hint ok"><i class="ic ic-badge-check"></i> Guide complete — every call is in the console on the right.</div>`
+      ? `<div class="gf-hint ok"><i class="ic ic-badge-check"></i> Flow complete — every call is in the console on the right.</div>`
       : (r.steps[nextIdx]?.hint
-          ? `<div class="rc-hint"><i class="ic ic-angle-small-right"></i> Next: ${esc(r.steps[nextIdx].hint)}</div>`
+          ? `<div class="gf-hint"><i class="ic ic-angle-small-right"></i> Next: ${esc(r.steps[nextIdx].hint)}</div>`
           : '')}`;
-  const x = wrap.querySelector('[data-recipe-clear]');
-  if(x) x.onclick = ()=>{ state.recipe=null; renderAll(); };
+  const x = wrap.querySelector('[data-flow-clear]');
+  if(x) x.onclick = ()=>{ state.guidedFlow=null; renderAll(); };
 }
 
 /* ============================================================================
@@ -2178,9 +2178,9 @@ function renderLeft(){
     ${state.mode==='live' ? renderConnection() : ''}
     <div class="section">
       <div class="label">Guided flows</div>
-      ${Object.entries(RECIPES).map(([id,r])=>`<button class="preset ${state.recipe===id?'on':''}" data-recipe="${id}">
+      ${Object.entries(GUIDED_FLOWS).map(([id,r])=>`<button class="preset ${state.guidedFlow===id?'on':''}" data-flow="${id}">
         <span class="pi">${icon(r.icon)}</span><span><b>${esc(r.title)}</b><span>${esc(r.blurb)}</span></span></button>`).join('')}
-      <div class="hint">The guidle will switch to the modules it requires for the low.</div>
+      <div class="hint">A guided flow switches on what it needs and ticks off each step as you reach it.</div>
     </div>
     <div class="section">
       <div class="label">Scenario presets</div>
@@ -2220,7 +2220,7 @@ function renderLeft(){
     <div class="section">
       <div class="label">Share</div>
       <button class="btn-s alt" id="copyLinkBtn">${icon('link')} Copy a link to this scenario</button>
-      <div class="hint">Encodes the issuing model, modules, capabilities, recipe, persona and location.
+      <div class="hint">Encodes the issuing model, modules, capabilities, guided flow, persona and location.
         Credentials are never included.</div>
     </div>
     <div class="section credits">
@@ -2230,7 +2230,7 @@ function renderLeft(){
 
   wireConnection(wrap);
   wrap.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
-  wrap.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>startRecipe(b.dataset.recipe));
+  wrap.querySelectorAll('[data-flow]').forEach(b=>b.onclick=()=>startGuidedFlow(b.dataset.flow));
   wrap.querySelectorAll('[data-persona]').forEach(b=>b.onclick=()=>{
     state.persona=b.dataset.persona;
     /* The persona drives PII on every request, so an in-flight user would now
@@ -2316,18 +2316,18 @@ function applyConfig(cfg){
 function applyPreset(id){
   const p = PRESETS.find(x=>x.id===id); if(!p) return;
   applyConfig(p.apply);
-  state.recipe=null;
+  state.guidedFlow=null;
   resetNav(); renderAll();
 }
-/* Starting a recipe switches on exactly what that journey needs, so the user
+/* Starting a guided flow switches on exactly what that journey needs, so the user
    never has to work out which toggles the steps depend on. */
-function startRecipe(id){
-  const r = RECIPES[id]; if(!r) return;
-  if(state.recipe===id){ state.recipe=null; renderAll(); return; }
-  state.recipe=id;
-  const done = state.recipeProgress[id] = new Set();
+function startGuidedFlow(id){
+  const r = GUIDED_FLOWS[id]; if(!r) return;
+  if(state.guidedFlow===id){ state.guidedFlow=null; renderAll(); return; }
+  state.guidedFlow=id;
+  const done = state.guidedFlowProgress[id] = new Set();
   /* A step whose precondition is already met should start ticked — otherwise a
-     recipe begun after you already hold a token could never complete, because
+     flow begun after you already hold a token could never complete, because
      auto-auth only fires when there is no token. */
   if(state.token) r.steps.forEach((s,i)=>{ if(s.match==='/v2/auth/token') done.add(i); });
   if(r.apply) applyConfig(r.apply);
@@ -3019,7 +3019,7 @@ function handleAct(d){
       }).then(()=>{
         if(cap('push')) logCall(()=>API.orderStatus(state.orders[0]));
         go('pass',{ kind:'prebooking', order: state.orders[0]?.id }, { replace:true });
-        markRecipeStep('prebookLounge', 4);   // the voucher is now rendered
+        markGuidedFlowStep('prebookLounge', 4);   // the voucher is now rendered
       });
       toast('Booking confirmed'); break;
     }
@@ -3101,7 +3101,7 @@ function handleAct(d){
         return logCall(()=>API.createOfferOrder(r,opt));
       }).then(()=>{
         if(cap('push')) logCall(()=>API.orderStatus(state.orders[0],'localOffer'));
-        markRecipeStep('localOffer', 4);
+        markGuidedFlowStep('localOffer', 4);
         go('voucher',{ order: state.orders[0]?.id });
       });
       toast('Offer claimed'); break;
@@ -3478,7 +3478,7 @@ function drawQR(canvas, text){
 /* ============================================================================
    BOOT
    ========================================================================== */
-function renderAll(){ renderLeft(); renderApp(); renderRecipeBar(); syncPermalink(); }
+function renderAll(){ renderLeft(); renderApp(); renderGuidedFlow(); syncPermalink(); }
 
 document.getElementById('modeSwitch').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   const next=b.dataset.mode;
@@ -3498,7 +3498,7 @@ document.getElementById('langSeg').querySelectorAll('button').forEach(b=>b.oncli
 });
 document.getElementById('clearBtn').onclick=()=>{
   document.getElementById('log').innerHTML='<div class="console-empty">Cleared. Tap in the app to make new calls.</div>';
-  state.recipeProgress={}; state.exported=[]; renderRecipeBar();
+  state.guidedFlowProgress={}; state.exported=[]; renderGuidedFlow();
 };
 setInterval(()=>{ document.getElementById('clock').textContent=new Date().toTimeString().slice(0,5); },1000);
 
